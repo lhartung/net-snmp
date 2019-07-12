@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# Copy template configuration file.
+test -f $SNAP_DATA/snmpd.conf || cp $SNAP/snmpd.conf $SNAP_DATA/snmpd.conf

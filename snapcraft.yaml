@@ -1,0 +1,80 @@
+name: net-snmp
+version: '5.8'
+summary: SNMP agent
+description: |
+  http://www.net-snmp.org/
+  snmpd is an SNMP agent which binds to a port and awaits requests from
+  SNMP management software. Upon receiving a request, it processes the
+  request(s), collects the requested information and/or performs the
+  requested operation(s) and returns the information to the sender.
+
+confinement: strict
+grade: stable
+
+apps:
+  snmpd:
+    command: run-snmpd
+    daemon: simple
+    plugs:
+      - hardware-observe
+      - mount-observe
+      - network
+      - network-bind
+      - network-observe
+      - network-setup-observe
+      - system-observe
+
+  snmpget:
+    command: snmpget -M $SNAP/share/snmp/mibs
+    plugs:
+      - network
+
+  snmpwalk:
+    command: snmpwalk -M $SNAP/share/snmp/mibs
+    plugs:
+      - network
+
+parts:
+  snmpd:
+    plugin: autotools
+
+    configflags:
+      - --disable-embedded-perl
+      - --without-perl-modules
+    install-via: prefix
+
+    build-packages:
+      - libperl-dev
+      - libssl-dev
+    stage-packages:
+      - libpci3
+      - libssl1.0.0
+
+    filesets:
+      binaries:
+        - bin
+        - sbin
+      libraries:
+        - lib
+      mibs:
+        - share/snmp/mibs
+    stage:
+      - $binaries
+      - $libraries
+      - $mibs
+    prime:
+      - $binaries
+      - $libraries
+      - $mibs
+
+  configuration:
+    plugin: dump
+    source: .
+    organize:
+      run-snmpd: sbin/run-snmpd
+    stage:
+      - sbin/run-snmpd
+      - snmpd.conf
+    prime:
+      - sbin/run-snmpd
+      - snmpd.conf

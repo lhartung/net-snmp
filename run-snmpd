@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# The snmpd daemon may fail to run the first time the snap is installed and
+# cause snapd to roll back the installation. One way that can happen is with
+# strict confinement and unconnected interfaces. We add a retry loop to give
+# the user a chance to correct any problems after the snap has been installed.
+while true; do
+    $SNAP/sbin/snmpd -c $SNAP_DATA/snmpd.conf -C -f -Lf "$SNAP_DATA/snmpd.log" -M "$SNAP/share/snmp/mibs" -r
+    sleep 10
+done
