@@ -64,9 +64,9 @@
 #include <sys/statfs.h>
 #endif
 
-netsnmp_feature_require(se_find_free_value_in_slist)
-netsnmp_feature_require(date_n_time)
-netsnmp_feature_require(ctime_to_timet)
+netsnmp_feature_require(se_find_free_value_in_slist);
+netsnmp_feature_require(date_n_time);
+netsnmp_feature_require(ctime_to_timet);
 
 #if defined(bsdi4) || defined(freebsd3) || defined(freebsd4) || defined(freebsd5) || defined(darwin)
 #if HAVE_GETFSSTAT && defined(MFSNAMELEN)
@@ -832,6 +832,27 @@ Check_HR_FileSys_NFS (void)
 	return 1;	/* NFS file system */
 
     return 0;		/* no NFS file system */
+}
+
+/* This function checks whether current file system is an AutoFs
+ * HRFS_entry must be valid prior to calling this function
+ * return 1 if AutoFs, 0 otherwise
+ */
+int
+Check_HR_FileSys_AutoFs(void)
+{
+#if HAVE_GETFSSTAT
+    if (HRFS_entry->HRFS_type != NULL && 
+#if defined(MNTTYPE_AUTOFS)
+        !strcmp(HRFS_entry->HRFS_type, MNTTYPE_AUTOFS)
+#else
+        !strcmp(HRFS_entry->HRFS_type, "autofs")
+#endif
+        )
+#endif /* HAVE_GETFSSTAT */
+        return 1;  /* AUTOFS */
+
+    return 0; /* no AUTOFS */
 }
 
 void

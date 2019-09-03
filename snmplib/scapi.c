@@ -51,6 +51,7 @@
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#include "memcheck.h"
 #if HAVE_DMALLOC_H
 #include <dmalloc.h>
 #endif
@@ -59,8 +60,8 @@
 #include <net-snmp/output_api.h>
 #include <net-snmp/utilities.h>
 
-netsnmp_feature_child_of(usm_support, libnetsnmp)
-netsnmp_feature_child_of(usm_scapi, usm_support)
+netsnmp_feature_child_of(usm_support, libnetsnmp);
+netsnmp_feature_child_of(usm_scapi, usm_support);
 
 #ifndef NETSNMP_FEATURE_REMOVE_USM_SCAPI
 
@@ -486,7 +487,7 @@ sc_get_properlength(const oid * hashtype, u_int hashtype_len)
         sc_get_authtype(hashtype, hashtype_len));
 }
 
-netsnmp_feature_child_of(scapi_get_proper_priv_length, netsnmp_unused)
+netsnmp_feature_child_of(scapi_get_proper_priv_length, netsnmp_unused);
 #ifndef NETSNMP_FEATURE_REMOVE_SCAPI_GET_PROPER_PRIV_LENGTH
 int
 sc_get_proper_priv_length(const oid * privtype, u_int privtype_len)
@@ -595,6 +596,7 @@ sc_random(u_char * buf, size_t * buflen)
 
 #ifdef NETSNMP_USE_OPENSSL
     RAND_bytes(buf, *buflen);   /* will never fail */
+    MAKE_MEM_DEFINED(buf, *buflen);
 #elif NETSNMP_USE_PKCS11			/* NETSNMP_USE_PKCS11 */
     pkcs_random(buf, *buflen);
 #else                           /* NETSNMP_USE_INTERNAL_MD5 */

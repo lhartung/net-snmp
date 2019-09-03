@@ -109,12 +109,12 @@ SOFTWARE.
 #include <net-snmp/library/tools.h>
 #include <net-snmp/pdu_api.h>
 
-netsnmp_feature_child_of(snmp_client_all, libnetsnmp)
+netsnmp_feature_child_of(snmp_client_all, libnetsnmp);
 
-netsnmp_feature_child_of(snmp_split_pdu, snmp_client_all)
-netsnmp_feature_child_of(snmp_reset_var_types, snmp_client_all)
-netsnmp_feature_child_of(query_set_default_session, snmp_client_all)
-netsnmp_feature_child_of(row_create, snmp_client_all)
+netsnmp_feature_child_of(snmp_split_pdu, snmp_client_all);
+netsnmp_feature_child_of(snmp_reset_var_types, snmp_client_all);
+netsnmp_feature_child_of(query_set_default_session, snmp_client_all);
+netsnmp_feature_child_of(row_create, snmp_client_all);
 
 #ifndef BSD4_3
 #define BSD4_2
@@ -405,26 +405,14 @@ _clone_pdu_header(netsnmp_pdu *pdu)
         return NULL;
     }
 
-    if (pdu->securityStateRef &&
-        pdu->command == SNMP_MSG_TRAP2) {
-
-        netsnmp_assert(pdu->securityModel == SNMP_DEFAULT_SECMODEL);
-        ret = usm_clone_usmStateReference((struct usmStateReference *) pdu->securityStateRef,
-                (struct usmStateReference **) &newpdu->securityStateRef );
-
-        if (ret)
-        {
+    sptr = find_sec_mod(newpdu->securityModel);
+    if (sptr && sptr->pdu_clone) {
+        /* call security model if it needs to know about this */
+        ret = sptr->pdu_clone(pdu, newpdu);
+        if (ret) {
             snmp_free_pdu(newpdu);
             return NULL;
         }
-    }
-
-    if ((sptr = find_sec_mod(newpdu->securityModel)) != NULL &&
-        sptr->pdu_clone != NULL) {
-        /*
-         * call security model if it needs to know about this 
-         */
-        (*sptr->pdu_clone) (pdu, newpdu);
     }
 
     return newpdu;
@@ -761,7 +749,7 @@ count_varbinds(netsnmp_variable_list * var_ptr)
     return count;
 }
 
-netsnmp_feature_child_of(count_varbinds_of_type, netsnmp_unused)
+netsnmp_feature_child_of(count_varbinds_of_type, netsnmp_unused);
 #ifndef NETSNMP_FEATURE_REMOVE_COUNT_VARBINDS_OF_TYPE
 int
 count_varbinds_of_type(netsnmp_variable_list * var_ptr, u_char type)
@@ -776,7 +764,7 @@ count_varbinds_of_type(netsnmp_variable_list * var_ptr, u_char type)
 }
 #endif /* NETSNMP_FEATURE_REMOVE_COUNT_VARBINDS_OF_TYPE */
 
-netsnmp_feature_child_of(find_varind_of_type, netsnmp_unused)
+netsnmp_feature_child_of(find_varind_of_type, netsnmp_unused);
 #ifndef NETSNMP_FEATURE_REMOVE_FIND_VARIND_OF_TYPE
 netsnmp_variable_list *
 find_varbind_of_type(netsnmp_variable_list * var_ptr, u_char type)

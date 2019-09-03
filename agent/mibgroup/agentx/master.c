@@ -51,9 +51,9 @@
 #include "agentx/protocol.h"
 #include "agentx/master_admin.h"
 
-netsnmp_feature_require(handler_mark_requests_as_delegated)
-netsnmp_feature_require(unix_socket_paths)
-netsnmp_feature_require(free_agent_snmp_session_by_session)
+netsnmp_feature_require(handler_mark_requests_as_delegated);
+netsnmp_feature_require(unix_socket_paths);
+netsnmp_feature_require(free_agent_snmp_session_by_session);
 
 void
 real_init_master(void)
@@ -616,8 +616,6 @@ agentx_master_handler(netsnmp_mib_handler *handler,
     result = snmp_async_send(ax_session, pdu, agentx_got_response, cb_data);
     if (result == 0) {
         snmp_free_pdu(pdu);
-        if (cb_data)
-            netsnmp_free_delegated_cache((netsnmp_delegated_cache*) cb_data);
     }
 
     return SNMP_ERR_NOERROR;

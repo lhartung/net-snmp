@@ -62,8 +62,8 @@
 #include <sys/statfs.h>
 #endif
 
-netsnmp_feature_require(date_n_time)
-netsnmp_feature_require(ctime_to_timet)
+netsnmp_feature_require(date_n_time);
+netsnmp_feature_require(ctime_to_timet);
 
 #define HRFS_MONOTONICALLY_INCREASING
 
@@ -428,4 +428,10 @@ int
 Check_HR_FileSys_NFS (void)
 {
     return (HRFS_entry->flags & NETSNMP_FS_FLAG_REMOTE) ? 1 : 0;
+}
+
+int
+Check_HR_FileSys_AutoFs (void)
+{
+    return HRFS_entry->type == NETSNMP_FS_TYPE_AUTOFS;
 }

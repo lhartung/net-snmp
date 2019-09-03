@@ -145,10 +145,10 @@ SOFTWARE.
 #include <net-snmp/library/cert_util.h>
 #endif
 
-netsnmp_feature_child_of(statistics, libnetsnmp)
-netsnmp_feature_child_of(snmp_api, libnetsnmp)
-netsnmp_feature_child_of(oid_is_subtree, snmp_api)
-netsnmp_feature_child_of(snmpv3_probe_contextEngineID_rfc5343, snmp_api)
+netsnmp_feature_child_of(statistics, libnetsnmp);
+netsnmp_feature_child_of(snmp_api, libnetsnmp);
+netsnmp_feature_child_of(oid_is_subtree, snmp_api);
+netsnmp_feature_child_of(snmpv3_probe_contextEngineID_rfc5343, snmp_api);
 
 static void     _init_snmp(void);
 
@@ -1029,7 +1029,7 @@ snmp_open(netsnmp_session *session)
 /*
  * extended open 
  */
-netsnmp_feature_child_of(snmp_open_ex, netsnmp_unused)
+netsnmp_feature_child_of(snmp_open_ex, netsnmp_unused);
 #ifndef NETSNMP_FEATURE_REMOVE_SNMP_OPEN_EX
 netsnmp_session *
 snmp_open_ex(netsnmp_session *session,
@@ -4027,17 +4027,6 @@ free_securityStateRef(netsnmp_pdu* pdu)
     pdu->securityStateRef = NULL;
 }
 
-/*
- * This function is here to provide a separate call to
- * free the securityStateRef memory. This is needed to prevent
- * a double free if this memory is freed in snmp_free_pdu.
- */
-void
-snmp_free_securityStateRef(netsnmp_pdu* pdu)
-{
-   free_securityStateRef(pdu);
-}
-
 #define ERROR_STAT_LENGTH 11
 
 int
@@ -5218,6 +5207,19 @@ snmp_async_send(netsnmp_session * session,
     return snmp_sess_async_send(sessp, pdu, callback, cb_data);
 }
 
+/**
+ * Send a PDU asynchronously.
+ *
+ * @param[in] slp      Session pointer.
+ * @param[in] pdu      PDU to send.
+ * @param[in] callback Callback function called after processing of the PDU
+ *                     finished. This function is called if the PDU has not
+ *                     been sent or after a response has been received.
+ * @param[in] cb_data  Will be passed as fifth argument to @callback.
+ *
+ * @return Returns 0 if sending failed or a non-zero request ID if sending
+ *   succeeded.
+ */
 static int
 _sess_async_send(struct session_list *slp,
                  netsnmp_pdu *pdu, snmp_callback callback, void *cb_data)
@@ -5451,26 +5453,8 @@ snmp_free_pdu(netsnmp_pdu *pdu)
     if (!pdu)
         return;
 
-    /*
-     * If the command field is empty, that probably indicates
-     *   that this PDU structure has already been freed.
-     *   Log a warning and return (rather than freeing things again)
-     *
-     * Note that this does not pick up dual-frees where the
-     *   memory is set to random junk, which is probably more serious.
-     *
-     * rks: while this is a good idea, there are two problems.
-     *         1) agentx sets command to 0 in some cases
-     *         2) according to Wes, a bad decode of a v3 message could
-     *            result in a 0 at this offset.
-     *      so I'm commenting it out until a better solution is found.
-     *      note that I'm leaving the memset, below....
-     *
-    if (pdu->command == 0) {
-        snmp_log(LOG_WARNING, "snmp_free_pdu probably called twice\n");
-        return;
-    }
-     */
+    free_securityStateRef(pdu);
+
     if ((sptr = find_sec_mod(pdu->securityModel)) != NULL &&
         sptr->pdu_free != NULL) {
         (*sptr->pdu_free) (pdu);
@@ -5483,7 +5467,6 @@ snmp_free_pdu(netsnmp_pdu *pdu)
     free(pdu->contextName);
     free(pdu->securityName);
     free(pdu->transport_data);
-    memset(pdu, 0, sizeof(netsnmp_pdu));
     free(pdu);
 }
 
@@ -5625,10 +5608,6 @@ _sess_process_packet_parse_pdu(struct session_list *slp, netsnmp_session * sp,
   }
 
   if (ret != SNMP_ERR_NOERROR) {
-    /*
-     * Call the security model to free any securityStateRef supplied w/ msg.  
-     */
-    free_securityStateRef(pdu);
     snmp_free_pdu(pdu);
     return NULL;
   }
@@ -5806,12 +5785,6 @@ _sess_process_packet_handle_pdu(struct session_list *slp, netsnmp_session * sp,
        */
     }
   }
-
-  /*
-   * Call USM to free any securityStateRef supplied with the message.  
-   */
-  if (pdu->command == SNMP_MSG_TRAP2)
-    free_securityStateRef(pdu);
 
   if (!handled) {
     if (sp->flags & SNMP_FLAGS_SHARED_SOCKET)
@@ -6481,7 +6454,7 @@ snmp_sess_select_info2(struct session_list *slp, int *numfds, netsnmp_large_fd_s
 /**
  * Compute/update the arguments to be passed to select().
  *
- * @param[in]     slp   Which sessions to process: either a pointer to a
+ * @param[in]     sessp   Which sessions to process: either a pointer to a
  *   specific session or NULL which means to process all sessions.
  * @param[in,out] numfds  On POSIX systems one more than the the largest file
  *   descriptor that is present in *fdset. On systems that use Winsock (MinGW

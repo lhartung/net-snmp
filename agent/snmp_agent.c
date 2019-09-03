@@ -111,23 +111,23 @@ int             deny_severity = LOG_WARNING;
 #include "smux/smux.h"
 #endif
 
-netsnmp_feature_child_of(snmp_agent, libnetsnmpagent)
-netsnmp_feature_child_of(agent_debugging_utilities, libnetsnmpagent)
+netsnmp_feature_child_of(snmp_agent, libnetsnmpagent);
+netsnmp_feature_child_of(agent_debugging_utilities, libnetsnmpagent);
 
-netsnmp_feature_child_of(allocate_globalcacheid, snmp_agent)
-netsnmp_feature_child_of(free_agent_snmp_session_by_session, snmp_agent)
-netsnmp_feature_child_of(check_all_requests_error, snmp_agent)
-netsnmp_feature_child_of(check_requests_error, snmp_agent)
-netsnmp_feature_child_of(request_set_error_idx, snmp_agent)
-netsnmp_feature_child_of(set_agent_uptime, snmp_agent)
-netsnmp_feature_child_of(agent_check_and_process, snmp_agent)
+netsnmp_feature_child_of(allocate_globalcacheid, snmp_agent);
+netsnmp_feature_child_of(free_agent_snmp_session_by_session, snmp_agent);
+netsnmp_feature_child_of(check_all_requests_error, snmp_agent);
+netsnmp_feature_child_of(check_requests_error, snmp_agent);
+netsnmp_feature_child_of(request_set_error_idx, snmp_agent);
+netsnmp_feature_child_of(set_agent_uptime, snmp_agent);
+netsnmp_feature_child_of(agent_check_and_process, snmp_agent);
 
-netsnmp_feature_child_of(dump_sess_list, agent_debugging_utilities)
+netsnmp_feature_child_of(dump_sess_list, agent_debugging_utilities);
 
-netsnmp_feature_child_of(agent_remove_list_data, netsnmp_unused)
-netsnmp_feature_child_of(set_all_requests_error, netsnmp_unused)
-netsnmp_feature_child_of(addrcache_age, netsnmp_unused)
-netsnmp_feature_child_of(delete_subtree_cache, netsnmp_unused)
+netsnmp_feature_child_of(agent_remove_list_data, netsnmp_unused);
+netsnmp_feature_child_of(set_all_requests_error, netsnmp_unused);
+netsnmp_feature_child_of(addrcache_age, netsnmp_unused);
+netsnmp_feature_child_of(delete_subtree_cache, netsnmp_unused);
 
 #ifndef NETSNMP_NO_PDU_STATS
 
@@ -1604,12 +1604,6 @@ free_agent_snmp_session(netsnmp_agent_session *asp)
     
     DEBUGMSGTL(("verbose:asp", "asp %p reqinfo %p freed\n",
                 asp, asp->reqinfo));
-
-    /* Clean up securityStateRef here to prevent a double free */
-    if (asp->orig_pdu)
-        snmp_free_securityStateRef(asp->orig_pdu);
-    if (asp->pdu)
-        snmp_free_securityStateRef(asp->pdu);
 
     if (asp->orig_pdu)
         snmp_free_pdu(asp->orig_pdu);
