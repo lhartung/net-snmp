@@ -39,9 +39,6 @@
 #  include <time.h>
 # endif
 #endif
-#if HAVE_KVM_H
-#include <kvm.h>
-#endif
 #if HAVE_PCRE_H
 #include <pcre.h>
 #endif
@@ -49,6 +46,7 @@
 #include <net-snmp/net-snmp-includes.h>
 #include <net-snmp/agent/net-snmp-agent-includes.h>
 
+#include "mibdefs.h"
 #include "struct.h"
 #include "proc.h"
 #ifdef USING_HOST_DATA_ACCESS_SWRUN_MODULE
@@ -60,7 +58,10 @@
 #define setPerrorstatus(x) snmp_log_perror(x)
 #endif
 #include "util_funcs.h"
-#include "kernel.h"
+
+#define PROCMIN 3
+#define PROCMAX 4
+#define PROCCOUNT 5
 
 static struct myproc *get_proc_instance(struct myproc *, oid);
 struct myproc  *procwatch = NULL;
@@ -191,7 +192,7 @@ proc_parse_config(const char *token, char *cptr)
     /*
      * don't allow two entries with the same name 
      */
-    copy_nword(cptr, tmpname, sizeof(tmpname));
+    cptr = copy_nword(cptr, tmpname, sizeof(tmpname));
     if (get_proc_by_name(tmpname) != NULL) {
         config_perror("Already have an entry for this process.");
         return;
@@ -213,9 +214,8 @@ proc_parse_config(const char *token, char *cptr)
     /*
      * not blank and not a comment 
      */
-    copy_nword(cptr, (*procp)->name, sizeof((*procp)->name));
-    cptr = skip_not_white(cptr);
-    if ((cptr = skip_white(cptr))) {
+    strlcpy((*procp)->name, tmpname, sizeof((*procp)->name));
+    if (cptr) {
         (*procp)->max = atoi(cptr);
         cptr = skip_not_white(cptr);
         if ((cptr = skip_white(cptr))) {
@@ -266,7 +266,7 @@ var_extensible_proc(struct variable *vp,
     struct myproc  *proc;
     static long     long_ret;
     static char    *errmsg;
-
+    static char     empty_str[1];
 
     if (header_simple_table
         (vp, name, length, exact, var_len, write_method, numprocs))
@@ -329,7 +329,7 @@ var_extensible_proc(struct variable *vp,
                 }
             }
             *var_len = errmsg ? strlen(errmsg) : 0;
-            return ((u_char *) errmsg);
+            return (u_char *)(errmsg ? errmsg : empty_str);
         case ERRORFIX:
             *write_method = fixProcError;
             long_return = fixproc.result;

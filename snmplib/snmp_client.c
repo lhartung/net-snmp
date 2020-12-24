@@ -90,10 +90,6 @@ SOFTWARE.
 #include <syslog.h>
 #endif
 
-#if HAVE_DMALLOC_H
-#include <dmalloc.h>
-#endif
-
 #include <net-snmp/types.h>
 
 #include <net-snmp/agent/ds_agent.h>
@@ -106,7 +102,6 @@ SOFTWARE.
 #include <net-snmp/library/snmp_logging.h>
 #include <net-snmp/library/snmp_assert.h>
 #include <net-snmp/library/large_fd_set.h>
-#include <net-snmp/library/tools.h>
 #include <net-snmp/pdu_api.h>
 
 netsnmp_feature_child_of(snmp_client_all, libnetsnmp);
@@ -367,9 +362,10 @@ _clone_pdu_header(netsnmp_pdu *pdu)
     if (!pdu)
         return NULL;
 
-    newpdu = netsnmp_memdup(pdu, sizeof(netsnmp_pdu));
+    newpdu = (netsnmp_pdu *) malloc(sizeof(netsnmp_pdu));
     if (!newpdu)
         return NULL;
+    memmove(newpdu, pdu, sizeof(netsnmp_pdu));
 
     /*
      * reset copied pointers if copy fails 
@@ -558,7 +554,10 @@ netsnmp_pdu    *
 _clone_pdu(netsnmp_pdu *pdu, int drop_err)
 {
     netsnmp_pdu    *newpdu;
+
     newpdu = _clone_pdu_header(pdu);
+    if (!newpdu)
+        return newpdu;
     newpdu = _copy_pdu_vars(pdu, newpdu, drop_err, 0, 10000);   /* skip none, copy all */
 
     return newpdu;
@@ -604,7 +603,10 @@ netsnmp_pdu    *
 snmp_split_pdu(netsnmp_pdu *pdu, int skip_count, int copy_count)
 {
     netsnmp_pdu    *newpdu;
+
     newpdu = _clone_pdu_header(pdu);
+    if (!newpdu)
+        return newpdu;
     newpdu = _copy_pdu_vars(pdu, newpdu, 0,     /* don't drop any variables */
                             skip_count, copy_count);
 
@@ -845,6 +847,7 @@ snmp_set_var_value(netsnmp_variable_list * vars,
                 *(vars->val.integer) = (unsigned long) *val_uint;
             }
         }
+#if SIZEOF_LONG != SIZEOF_INT
         else if (vars->val_len == sizeof(long)){
             const u_long   *val_ulong
                 = (const u_long *) value;
@@ -854,6 +857,9 @@ snmp_set_var_value(netsnmp_variable_list * vars,
                 *(vars->val.integer) &= 0xffffffff;
             }
         }
+#endif
+#if defined(SIZEOF_LONG_LONG) && (SIZEOF_LONG != SIZEOF_LONG_LONG)
+#if !defined(SIZEOF_INTMAX_T) || (SIZEOF_LONG_LONG != SIZEOF_INTMAX_T)
         else if (vars->val_len == sizeof(long long)){
             const unsigned long long   *val_ullong
                 = (const unsigned long long *) value;
@@ -863,6 +869,9 @@ snmp_set_var_value(netsnmp_variable_list * vars,
                 *(vars->val.integer) &= 0xffffffff;
             }
         }
+#endif
+#endif
+#if defined(SIZEOF_INTMAX_T) && (SIZEOF_LONG != SIZEOF_INTMAX_T)
         else if (vars->val_len == sizeof(intmax_t)){
             const uintmax_t *val_uintmax_t
                 = (const uintmax_t *) value;
@@ -872,6 +881,8 @@ snmp_set_var_value(netsnmp_variable_list * vars,
                 *(vars->val.integer) &= 0xffffffff;
             }
         }
+#endif
+#if SIZEOF_SHORT != SIZEOF_INT
         else if (vars->val_len == sizeof(short)) {
             if (ASN_INTEGER == vars->type) {
                 const short      *val_short 
@@ -883,10 +894,11 @@ snmp_set_var_value(netsnmp_variable_list * vars,
                 *(vars->val.integer) = (unsigned long) *val_ushort;
             }
         }
+#endif
         else if (vars->val_len == sizeof(char)) {
             if (ASN_INTEGER == vars->type) {
-                const char      *val_char 
-                    = (const char *) value;
+                const signed char   *val_char
+                    = (const signed char *) value;
                 *(vars->val.integer) = (long) *val_char;
             } else {
                     const u_char    *val_uchar
@@ -955,7 +967,7 @@ snmp_set_var_value(netsnmp_variable_list * vars,
     case ASN_OPAQUE_I64:
 #endif                          /* NETSNMP_WITH_OPAQUE_SPECIAL_TYPES */
     case ASN_COUNTER64:
-        if (largeval) {
+        if (largeval || vars->val_len != sizeof(struct counter64)) {
             snmp_log(LOG_ERR,"bad size for counter 64 (%d)\n",
                      (int)vars->val_len);
             return (1);
@@ -1109,7 +1121,7 @@ snmp_synch_response(netsnmp_session * ss,
 }
 
 int
-snmp_sess_synch_response(struct session_list *slp,
+snmp_sess_synch_response(void *sessp,
                          netsnmp_pdu *pdu, netsnmp_pdu **response)
 {
     netsnmp_session      *ss;
@@ -1121,7 +1133,7 @@ snmp_sess_synch_response(struct session_list *slp,
     struct timeval        timeout, *tvp;
     int                   block;
 
-    ss = snmp_sess_session(slp);
+    ss = snmp_sess_session(sessp);
     if (ss == NULL) {
         return STAT_ERROR;
     }
@@ -1134,7 +1146,7 @@ snmp_sess_synch_response(struct session_list *slp,
     ss->callback_magic = (void *) state;
     netsnmp_large_fd_set_init(&fdset, FD_SETSIZE);
 
-    if (snmp_sess_send(slp, pdu) == 0) {
+    if (snmp_sess_send(sessp, pdu) == 0) {
         snmp_free_pdu(pdu);
         state->status = STAT_ERROR;
     } else {
@@ -1148,17 +1160,17 @@ snmp_sess_synch_response(struct session_list *slp,
         block = NETSNMP_SNMPBLOCK;
         tvp = &timeout;
         timerclear(tvp);
-        snmp_sess_select_info2_flags(slp, &numfds, &fdset, tvp, &block,
+        snmp_sess_select_info2_flags(sessp, &numfds, &fdset, tvp, &block,
                                      NETSNMP_SELECT_NOALARMS);
         if (block == 1)
             tvp = NULL;         /* block without timeout */
         count = netsnmp_large_fd_set_select(numfds, &fdset, NULL, NULL, tvp);
         if (count > 0) {
-            snmp_sess_read2(slp, &fdset);
+            snmp_sess_read2(sessp, &fdset);
         } else
             switch (count) {
             case 0:
-                snmp_sess_timeout(slp);
+                snmp_sess_timeout(sessp);
                 break;
             case -1:
                 if (errno == EINTR) {

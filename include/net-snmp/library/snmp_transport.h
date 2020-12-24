@@ -265,7 +265,6 @@ int netsnmp_transport_add_to_list(netsnmp_transport_list **transport_list,
 				  netsnmp_transport *transport);
 int netsnmp_transport_remove_from_list(netsnmp_transport_list **transport_list,
 				       netsnmp_transport *transport);
-NETSNMP_IMPORT
 int netsnmp_sockaddr_size(const struct sockaddr *sa);
 
 
@@ -288,13 +287,11 @@ void            netsnmp_transport_free(netsnmp_transport *t);
 
 NETSNMP_IMPORT
 netsnmp_transport *netsnmp_transport_cache_get(int af, int type, int local,
-                                               const netsnmp_sockaddr_storage *bind_addr,
-                                               unsigned addr_size);
+                                               const netsnmp_sockaddr_storage *bind_addr);
 
 NETSNMP_IMPORT
 int                netsnmp_transport_cache_save(int af, int type, int local,
                                                 const netsnmp_sockaddr_storage *addr,
-                                                unsigned addr_size,
                                                 netsnmp_transport *t);
 
 NETSNMP_IMPORT

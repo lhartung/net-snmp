@@ -6,6 +6,7 @@
 
 #undef MBPOOL_SYMBOL
 #undef MCLPOOL_SYMBOL
+#undef TOTAL_MEMORY_SYMBOL
 
 /* at least OpenBSD/SPARC 3.7 doesn't define this */
 #ifndef UINT32_MAX
@@ -14,4 +15,3 @@
 
 /* define the extra mib modules that are supported */
 #define NETSNMP_INCLUDE_HOST_RESOURCES
-#define NETSNMP_INCLUDE_IFTABLE_REWRITES

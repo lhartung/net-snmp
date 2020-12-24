@@ -1252,7 +1252,7 @@ netsnmp_register_agent_nsap(netsnmp_transport *t)
     netsnmp_session *s, *sp = NULL;
     agent_nsap     *a = NULL, *n = NULL, **prevNext = &agent_nsap_list;
     int             handle = 0;
-    struct session_list *isp = NULL;
+    void           *isp = NULL;
 
     if (t == NULL) {
         return -1;
@@ -1574,7 +1574,11 @@ init_agent_snmp_session(netsnmp_session * session, netsnmp_pdu *pdu)
     DEBUGMSGTL(("snmp_agent","agent_sesion %8p created\n", asp));
     asp->session = session;
     asp->pdu = snmp_clone_pdu(pdu);
+    if (!asp->pdu)
+        goto err;
     asp->orig_pdu = snmp_clone_pdu(pdu);
+    if (!asp->orig_pdu)
+        goto err;
     asp->rw = READ;
     asp->exact = TRUE;
     asp->next = NULL;
@@ -1590,6 +1594,12 @@ init_agent_snmp_session(netsnmp_session * session, netsnmp_pdu *pdu)
                 asp, asp->reqinfo));
 
     return asp;
+
+err:
+    snmp_free_pdu(asp->orig_pdu);
+    snmp_free_pdu(asp->pdu);
+    free(asp);
+    return NULL;
 }
 
 void
@@ -3465,10 +3475,12 @@ handle_getnext_loop(netsnmp_agent_session *asp)
              * reader.]
              */
             rough_size += var_ptr->name_length;
+#if (SIZEOF_LONG == 8)
             /** sizeof(oid) is 8 on 64bit systems :-( Hardcode for 4 */
-            if (var_ptr->type == ASN_OBJECT_ID && sizeof(long) == 8)
+            if (ASN_OBJECT_ID == var_ptr->type)
                 val_len = (var_ptr->val_len / 2);
             else
+#endif
                 val_len = var_ptr->val_len;
 
             DEBUGMSGTL(("results:intermediate", "\t+ %" NETSNMP_PRIz "d %d = %d\n",
@@ -3756,9 +3768,7 @@ handle_pdu(netsnmp_agent_session *asp)
     case SNMP_MSG_INTERNAL_SET_RESERVE1:
 #endif /* NETSNMP_NO_WRITE_SUPPORT */
         asp->vbcount = count_varbinds(asp->pdu->variables);
-        if (asp->vbcount) /* efence doesn't like 0 size allocs */
-            asp->requests = (netsnmp_request_info *)
-                calloc(asp->vbcount, sizeof(netsnmp_request_info));
+        asp->requests = calloc(asp->vbcount, sizeof(netsnmp_request_info));
         /*
          * collect varbinds 
          */

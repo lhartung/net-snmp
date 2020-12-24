@@ -34,10 +34,6 @@
 #include <errno.h>
 
 
-#if HAVE_DMALLOC_H
-#include <dmalloc.h>
-#endif
-
 #ifdef NETSNMP_USE_KERBEROS_HEIMDAL
 #ifndef NETSNMP_USE_KERBEROS_MIT
 #define OLD_HEIMDAL
@@ -70,6 +66,8 @@
 #include <et/com_err.h>
 #elif HAVE_COM_ERR_H
 #include <com_err.h>
+#else
+static const char *error_message(int ret) { return "(?)"; }
 #endif
 
 #include <net-snmp/output_api.h>

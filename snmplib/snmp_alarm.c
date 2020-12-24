@@ -44,10 +44,6 @@
 # endif
 #endif
 
-#if HAVE_DMALLOC_H
-#include <dmalloc.h>
-#endif
-
 #include <net-snmp/types.h>
 #include <net-snmp/output_api.h>
 #include <net-snmp/config_api.h>
@@ -309,7 +305,8 @@ set_an_alarm(void)
 
     if (nextalarm && !netsnmp_ds_get_boolean(NETSNMP_DS_LIBRARY_ID,
 					NETSNMP_DS_LIB_ALARM_DONT_USE_SIG)) {
-#if defined(HAVE_SETITIMER)
+#ifndef WIN32
+# ifdef HAVE_SETITIMER
         struct itimerval it;
 
         it.it_value = delta;
@@ -319,13 +316,17 @@ set_an_alarm(void)
         setitimer(ITIMER_REAL, &it, NULL);
         DEBUGMSGTL(("snmp_alarm", "schedule alarm %d in %ld.%03ld seconds\n",
                     nextalarm, (long) delta.tv_sec, (long)(delta.tv_usec / 1000)));
-#elif defined(SIGALRM)
+# else  /* HAVE_SETITIMER */
+#  ifdef SIGALRM
         signal(SIGALRM, alarm_handler);
         alarm(delta.tv_sec);
         DEBUGMSGTL(("snmp_alarm",
                     "schedule alarm %d in roughly %ld seconds\n", nextalarm,
                     delta.tv_sec));
-#endif
+#  endif  /* SIGALRM */
+# endif  /* HAVE_SETITIMER */
+#endif  /* WIN32 */
+
     } else {
         DEBUGMSGTL(("snmp_alarm", "no alarms found to schedule\n"));
     }

@@ -67,10 +67,6 @@
 #	include <net/if.h>
 #endif
 
-#if HAVE_DMALLOC_H
-#include <dmalloc.h>
-#endif
-
 #include <net-snmp/types.h>
 #include <net-snmp/output_api.h>
 #include <net-snmp/config_api.h>
@@ -1194,9 +1190,10 @@ snmpv3_clone_engineID(u_char ** dest, size_t * destlen, u_char * src,
     *destlen = 0;
 
     if (srclen && src) {
-        *dest = netsnmp_memdup(src, srclen);
+        *dest = (u_char *) malloc(srclen);
         if (*dest == NULL)
             return 0;
+        memmove(*dest, src, srclen);
         *destlen = srclen;
     }
     return *destlen;

@@ -108,7 +108,11 @@ NETSNMP_STATIC_INLINE uint32_t le32(const uint32_t *p)
 #define hh(A,B,C,D,i,s,lp)   A = rot((A + h(B,C,D) + le32(&X[i]) + lp),s) + B
 #define ii(A,B,C,D,i,s,lp)   A = rot((A + i_(B,C,D) + le32(&X[i]) + lp),s) + B
 
+#ifdef STDC_HEADERS
 #define Uns(num) num##U
+#else
+#define Uns(num) num
+#endif                          /* STDC_HEADERS */
 
 #ifdef NETSNMP_ENABLE_TESTING_CODE
 /*

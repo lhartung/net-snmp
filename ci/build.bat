@@ -1,35 +1,46 @@
 echo "Build type %BUILD%"
 @echo on
+@rem dir /b /s "C:\Program Files (x86)" | findstr /i /e "\vcvars64.bat"
+set "VCVARSPATH=C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build"
 goto %BUILD%
 echo "Error: unknown build type %BUILD%"
 goto eof
 
 :MSVCDYNAMIC64
-call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
+call "%VCVARSPATH%\vcvars64.bat"
+call ci/perl.bat MSVC142
+if %errorlevel% neq 0 exit /b %errorlevel%
 set PATH=c:\perl-msvc\bin;%PATH%
 cd win32
 perl Configure --config=release --enable-blumenthal-aes --with-sdk --with-ipv6 --with-winextdll --linktype=dynamic --with-ssl --with-sslincdir=C:\OpenSSL-Win64\include --with-ssllibdir=C:\OpenSSL-Win64\lib\vc
+if %errorlevel% neq 0 exit /b %errorlevel%
 nmake /nologo
 if %errorlevel% neq 0 exit /b %errorlevel%
 nmake /nologo perl
 if %errorlevel% neq 0 exit /b %errorlevel%
-rem nmake /nologo perl_test - to do: fix Perl module tests on Win32
+nmake /nologo perl_test
 if %errorlevel% neq 0 exit /b %errorlevel%
 cd ..
 goto eof
 
 :MSVCSTATIC64
-call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
+call "%VCVARSPATH%\vcvars64.bat"
+call ci/perl.bat MSVC142
+if %errorlevel% neq 0 exit /b %errorlevel%
 set PATH=c:\perl-msvc\bin;%PATH%
 cd win32
 perl Configure --config=release --enable-blumenthal-aes --with-sdk --with-ipv6 --with-winextdll --linktype=static --with-ssl --with-sslincdir=C:\OpenSSL-Win64\include --with-ssllibdir=C:\OpenSSL-Win64\lib\vc
+if %errorlevel% neq 0 exit /b %errorlevel%
 nmake /nologo
 if %errorlevel% neq 0 exit /b %errorlevel%
 cd ..
 goto eof
 
 :INSTALLER
-call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
+call "%VCVARSPATH%\vcvars64.bat"
+call ci/perl.bat MSVC142
+if %errorlevel% neq 0 exit /b %errorlevel%
+set PATH=c:\perl-msvc\bin;%PATH%
 set OPENSSLDIR=C:\OpenSSL-Win64
 set PATH=%PATH%;C:\cygwin64\bin
 perl win32\dist\build-binary.pl
@@ -45,11 +56,13 @@ exit /b %e%
 goto eof
 
 :MinGW32
-rem Although the AppVeyor documentation mentions MinGW, MinGW is not present.
-rem See also https://www.appveyor.com/docs/windows-images-software/.
+rem MinGW is not present in the Visual Studio 2017 image. See also
+rem https://www.appveyor.com/docs/windows-images-software/.
+if exist C:\mingw goto MinGW32-get
 mkdir C:\mingw
 curl --no-alpn -L "https://osdn.net/dl/mingw/mingw-get-0.6.3-mingw32-pre-20170905-1-bin.zip" -o C:\mingw\mingw-get.zip
 unzip C:\mingw\mingw-get.zip -d C:\mingw
+:MinGW32-get
 C:\mingw\bin\mingw-get install mingw32-binutils-bin mingw32-gcc-bin mingw32-gcc-dev mingw32-w32api-dev msys-autoconf-bin msys-automake-bin msys-bash-bin msys-core-bin msys-coreutils-bin msys-file-bin msys-gawk-bin msys-grep-bin msys-libncurses-dev msys-libopenssl-dev msys-m4-bin msys-make-bin msys-openssl-bin msys-perl-bin msys-sed-bin msys-tar-bin
 set MSYSTEM=MINGW32
 C:\mingw\msys\1.0\bin\bash --login -c 'set -x; cd "${APPVEYOR_BUILD_FOLDER}"; ci/build.sh'

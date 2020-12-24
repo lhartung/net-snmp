@@ -528,11 +528,11 @@ init_snmpNotifyTable_data(void)
     static int done = 0;
 
     if (++done != 1) {
-        DEBUGMSGTL(("snmpNotifyTable_data", "multiple init calls\n"));
+        DEBUGMSGTL(("snmpNotifyTable_data", "multiple init calls"));
         return;
     }
 
-    DEBUGMSGTL(("snmpNotifyTable_data", "initializing...  \n"));
+    DEBUGMSGTL(("snmpNotifyTable_data", "initializing...  "));
 
     /*
      * we need to be called back later to store our data 
@@ -565,7 +565,7 @@ init_snmpNotifyTable_data(void)
 void
 shutdown_snmpNotifyTable_data(void)
 {
-    DEBUGMSGTL(("snmpNotifyTable_data", "shutting down ... \n"));
+    DEBUGMSGTL(("snmpNotifyTable_data", "shutting down ... "));
 
     snmp_unregister_callback(SNMP_CALLBACK_LIBRARY, SNMP_CALLBACK_STORE_DATA,
                              store_snmpNotifyTable, NULL, FALSE);

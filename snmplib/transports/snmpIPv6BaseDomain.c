@@ -48,10 +48,6 @@
 #include <net/if.h>
 #endif
 
-#if HAVE_DMALLOC_H
-#include <dmalloc.h>
-#endif
-
 #include <net-snmp/types.h>
 #include <net-snmp/library/snmp_debug.h>
 #include <net-snmp/library/default_store.h>
@@ -67,7 +63,7 @@
 
 
 #if defined(HAVE_WINSOCK_H) && !defined(mingw32)
-static const struct in6_addr in6addr_any; /*IN6ADDR_ANY_INIT*/
+static const struct in6_addr in6addr_any = IN6ADDR_ANY_INIT;
 #endif
 
 

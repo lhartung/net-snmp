@@ -36,6 +36,9 @@
  * DAMAGE.
  */
 
+/* For getlogin() on MinGW */
+#define _POSIX
+
 #include <net-snmp/net-snmp-config.h>
 
 #include <signal.h>
@@ -55,6 +58,9 @@
 #endif
 #if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#if HAVE_IO_H
+#include <io.h>
 #endif
 
 #include <math.h>
@@ -630,7 +636,7 @@ int main(int argc, char **argv)
         usernameLen = strlen(username);
     }
     if (1 /* !have-testname-arg */) {
-        snprintf(testname, sizeof(testname) - 1, "snmpping-%ld", (long)getpid());
+        snprintf(testname, sizeof(testname) - 1, "snmpping-%d", getpid());
         testname[32] = '\0';
         testnameLen = strlen(testname);
     }

@@ -56,9 +56,6 @@
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#if HAVE_DMALLOC_H
-#include <dmalloc.h>
-#endif
 
 #include <net-snmp/types.h>
 #include <net-snmp/output_api.h>
@@ -240,28 +237,28 @@ static struct usmUser *userList = NULL;
  *
  * Return 0 on success, -1 otherwise.
  */
-#define MAKE_ENTRY(ref, type, item, len, field, field_len)              \
-{									\
-	if (ref == NULL)						\
-		return -1;						\
-	if (ref->field != NULL)	{					\
-		SNMP_ZERO(ref->field, ref->field_len);			\
-		SNMP_FREE(ref->field);					\
-	}								\
-	ref->field_len = 0;						\
-        if (len == 0 || item == NULL) {					\
-		return 0;						\
-	}					 			\
-	if ((ref->field = (type*) malloc (len * sizeof(type))) == NULL)	\
-	{								\
-		return -1;						\
-	}								\
-									\
-	memcpy (ref->field, item, len * sizeof(type));			\
-	ref->field_len = len;						\
-									\
-	return 0;							\
-}
+#define MAKE_ENTRY(ref, type, item, len, field, field_len)      \
+do {                                                            \
+	if (ref == NULL)                                        \
+		return -1;                                      \
+	if (ref->field != NULL)	{                               \
+		SNMP_ZERO(ref->field, ref->field_len);          \
+		SNMP_FREE(ref->field);                          \
+	}                                                       \
+	ref->field_len = 0;                                     \
+        if (len == 0 || item == NULL)                           \
+		return 0;                                       \
+	ref->field = netsnmp_memdup(item, len * sizeof(type));  \
+        if (ref->field == NULL)                                 \
+		return -1;                                      \
+                                                                \
+	ref->field_len = len;                                   \
+	return 0;                                               \
+} while (0)
+
+static int
+usm_clone_usmStateReference(struct usmStateReference *from,
+                            struct usmStateReference **to);
 
 static int
 free_enginetime_on_shutdown(int majorid, int minorid, void *serverarg,
@@ -406,8 +403,9 @@ usm_set_usmStateReference_sec_level(struct usmStateReference *ref,
     return 0;
 }
 
-int
-usm_clone_usmStateReference(struct usmStateReference *from, struct usmStateReference **to)
+static int
+usm_clone_usmStateReference(struct usmStateReference *from,
+                            struct usmStateReference **to)
 {
     struct usmStateReference *cloned_usmStateRef;
 
@@ -471,14 +469,14 @@ emergency_print(u_char * field, u_int length)
 #endif                          /* NETSNMP_ENABLE_TESTING_CODE */
 
 static struct usmUser *
-usm_get_user_from_list(u_char * engineID, size_t engineIDLen,
-                       char *name, struct usmUser *puserList,
+usm_get_user_from_list(const u_char *engineID, size_t engineIDLen,
+                       const char *name, struct usmUser *puserList,
                        int use_default)
 {
     struct usmUser *ptr;
-    char            noName[] = "";
+
     if (name == NULL)
-        name = noName;
+        name = "";
     for (ptr = puserList; ptr != NULL; ptr = ptr->next) {
         if (ptr->name && !strcmp(ptr->name, name)) {
           DEBUGMSGTL(("usm", "match on user %s\n", ptr->name));
@@ -510,7 +508,7 @@ usm_get_user_from_list(u_char * engineID, size_t engineIDLen,
  * engineIDLen and name of the requested user.
  */
 struct usmUser *
-usm_get_user(u_char * engineID, size_t engineIDLen, char *name)
+usm_get_user(const u_char *engineID, size_t engineIDLen, const char *name)
 {
     DEBUGMSGTL(("usm", "getting user %s\n", name));
     return usm_get_user_from_list(engineID, engineIDLen, name, userList,
@@ -1281,12 +1279,12 @@ usm_generate_out_msg(int msgProcModel,  /* (UNUSED) */
                      size_t globalDataLen,      /* IN - Length of msg header data.      */
                      int maxMsgSize,    /* (UNUSED) */
                      int secModel,      /* (UNUSED) */
-                     u_char * secEngineID,      /* IN - Pointer snmpEngineID.           */
-                     size_t secEngineIDLen,     /* IN - SnmpEngineID length.            */
-                     char *secName,     /* IN - Pointer to securityName.        */
-                     size_t secNameLen, /* IN - SecurityName length.            */
-                     int secLevel,      /* IN - AuthNoPriv, authPriv etc.       */
-                     u_char * scopedPdu,        /* IN */
+                     const u_char *secEngineID, /* IN - Pointer snmpEngineID. */
+                     size_t secEngineIDLen,     /* IN - SnmpEngineID length.  */
+                     const char *secName,     /* IN - Pointer to securityName.*/
+                     size_t secNameLen, /* IN - SecurityName length.          */
+                     int secLevel,      /* IN - AuthNoPriv, authPriv etc.     */
+                     const u_char *scopedPdu, /* IN */
                      /*
                       * Pointer to scopedPdu will be encrypted by USM if needed
                       * * and written to packet buffer immediately following
@@ -1294,7 +1292,7 @@ usm_generate_out_msg(int msgProcModel,  /* (UNUSED) */
                       * * USM if needed.
                       */
                      size_t scopedPduLen,       /* IN - scopedPdu length. */
-                     void *secStateRef, /* IN */
+                     const void *secStateRef, /* IN */
                      /*
                       * secStateRef, pointer to cached info provided only for
                       * * Response, otherwise NULL.
@@ -1345,9 +1343,9 @@ usm_generate_out_msg(int msgProcModel,  /* (UNUSED) */
      * actual prarmeter list or the user list.
      */
 
-    char           *theName = NULL;
+    const char     *theName = NULL;
     u_int           theNameLength = 0;
-    u_char         *theEngineID = NULL;
+    const u_char   *theEngineID = NULL;
     u_int           theEngineIDLength = 0;
     u_char         *theAuthKey = NULL;
     u_int           theAuthKeyLength = 0;
@@ -1367,8 +1365,7 @@ usm_generate_out_msg(int msgProcModel,  /* (UNUSED) */
         /*
          * To hush the compiler for now.  XXX 
          */
-        struct usmStateReference *ref
-            = (struct usmStateReference *) secStateRef;
+        const struct usmStateReference *ref = secStateRef;
 
         theName = ref->usr_name;
         theNameLength = ref->usr_name_length;
@@ -1642,7 +1639,7 @@ usm_generate_out_msg(int msgProcModel,  /* (UNUSED) */
     DEBUGDUMPHEADER("send", "msgUserName");
     asn_build_string(&ptr[offSet], &remaining,
                      (u_char) (ASN_UNIVERSAL | ASN_PRIMITIVE |
-                               ASN_OCTET_STR), (u_char *) theName,
+                               ASN_OCTET_STR), (const u_char *) theName,
                      theNameLength);
     DEBUGINDENTLESS();
 
@@ -1788,12 +1785,12 @@ usm_rgenerate_out_msg(int msgProcModel, /* (UNUSED) */
                       size_t globalDataLen,     /* IN - Length of msg header data.      */
                       int maxMsgSize,   /* (UNUSED) */
                       int secModel,     /* (UNUSED) */
-                      u_char * secEngineID,     /* IN - Pointer snmpEngineID.           */
-                      size_t secEngineIDLen,    /* IN - SnmpEngineID length.            */
-                      char *secName,    /* IN - Pointer to securityName.        */
-                      size_t secNameLen,        /* IN - SecurityName length.            */
-                      int secLevel,     /* IN - AuthNoPriv, authPriv etc.       */
-                      u_char * scopedPdu,       /* IN */
+                      const u_char *secEngineID, /* IN - Pointer snmpEngineID.*/
+                      size_t secEngineIDLen,     /* IN - SnmpEngineID length. */
+                      const char *secName,    /* IN - Pointer to securityName.*/
+                      size_t secNameLen,        /* IN - SecurityName length.  */
+                      int secLevel,         /* IN - AuthNoPriv, authPriv etc. */
+                      const u_char *scopedPdu,       /* IN */
                       /*
                        * Pointer to scopedPdu will be encrypted by USM if needed
                        * * and written to packet buffer immediately following
@@ -1801,7 +1798,7 @@ usm_rgenerate_out_msg(int msgProcModel, /* (UNUSED) */
                        * * USM if needed.
                        */
                       size_t scopedPduLen,      /* IN - scopedPdu length. */
-                      void *secStateRef,        /* IN */
+                      const void *secStateRef,  /* IN */
                       /*
                        * secStateRef, pointer to cached info provided only for
                        * * Response, otherwise NULL.
@@ -1816,7 +1813,7 @@ usm_rgenerate_out_msg(int msgProcModel, /* (UNUSED) */
                        * Length of the entire packet buffer, **not** the length of the
                        * packet.  
                        */
-                      size_t * offset   /*  IN/OUT  */
+                      size_t * offset           /*  IN/OUT  */
                       /*
                        * Offset from the end of the packet buffer to the start of the packet,
                        * also known as the packet length.  
@@ -1837,9 +1834,9 @@ usm_rgenerate_out_msg(int msgProcModel, /* (UNUSED) */
      * actual parameter list or the user list.
      */
 
-    char           *theName = NULL;
+    const char     *theName = NULL;
     u_int           theNameLength = 0;
-    u_char         *theEngineID = NULL;
+    const u_char   *theEngineID = NULL;
     u_int           theEngineIDLength = 0;
     u_char         *theAuthKey = NULL;
     u_int           theAuthKeyLength = 0;
@@ -1864,8 +1861,7 @@ usm_rgenerate_out_msg(int msgProcModel, /* (UNUSED) */
         /*
          * To hush the compiler for now.  XXX 
          */
-        struct usmStateReference *ref
-            = (struct usmStateReference *) secStateRef;
+        const struct usmStateReference *ref = secStateRef;
 
         theName = ref->usr_name;
         theNameLength = ref->usr_name_length;
@@ -2129,7 +2125,7 @@ usm_rgenerate_out_msg(int msgProcModel, /* (UNUSED) */
     rc = asn_realloc_rbuild_string(wholeMsg, wholeMsgLen, offset, 1,
                                    (u_char) (ASN_UNIVERSAL | ASN_PRIMITIVE
                                              | ASN_OCTET_STR),
-                                   (u_char *) theName, theNameLength);
+                                   (const u_char *) theName, theNameLength);
     DEBUGINDENTLESS();
     if (rc == 0) {
         DEBUGMSGTL(("usm", "building authParams failed.\n"));
@@ -3392,6 +3388,45 @@ usm_session_init(netsnmp_session *in_session, netsnmp_session *session)
     return SNMPERR_SUCCESS;
 }
 
+static int usm_build_user(struct usmUser **result,
+                          const netsnmp_session *session)
+{
+    struct usmUser *user;
+
+    DEBUGMSGTL(("usm", "Building user %s...\n", session->securityName));
+    /*
+     * user doesn't exist so we create and add it
+     */
+    user = calloc(1, sizeof(struct usmUser));
+    if (user == NULL)
+        goto err;
+
+    /*
+     * copy in the securityName
+     */
+    if (session->securityName) {
+        user->name = strdup(session->securityName);
+        user->secName = strdup(session->securityName);
+        if (user->name == NULL || user->secName == NULL)
+            goto err;
+    }
+
+    /*
+     * copy in the engineID
+     */
+    user->engineID = netsnmp_memdup(session->securityEngineID,
+                                    session->securityEngineIDLen);
+    if (session->securityEngineID && !user->engineID)
+        goto err;
+    user->engineIDLen = session->securityEngineIDLen;
+    *result = user;
+    return SNMPERR_SUCCESS;
+
+err:
+    usm_free_user(user);
+    return SNMPERR_GENERR;
+}
+
 /*
  * usm_create_user_from_session(netsnmp_session *session):
  * 
@@ -3435,42 +3470,11 @@ usm_create_user_from_session(netsnmp_session * session)
                                   session->securityEngineIDLen,
                                   session->securityName,
                                   usm_get_userList(), 0);
-    if (NULL != user) 
+    if (NULL != user) {
         DEBUGMSGTL(("usm", "user exists x=%p\n", user));
-    else
-    if (user == NULL) {
-        DEBUGMSGTL(("usm", "Building user %s...\n",
-                    session->securityName));
-        /*
-         * user doesn't exist so we create and add it 
-         */
-        user = (struct usmUser *) calloc(1, sizeof(struct usmUser));
-        if (user == NULL)
+    } else {
+        if (usm_build_user(&user, session) != SNMPERR_SUCCESS)
             return SNMPERR_GENERR;
-
-        /*
-         * copy in the securityName 
-         */
-        if (session->securityName) {
-            user->name = strdup(session->securityName);
-            user->secName = strdup(session->securityName);
-            if (user->name == NULL || user->secName == NULL) {
-                usm_free_user(user);
-                return SNMPERR_GENERR;
-            }
-        }
-
-        /*
-         * copy in the engineID 
-         */
-        user->engineID = netsnmp_memdup(session->securityEngineID,
-                                        session->securityEngineIDLen);
-        if (session->securityEngineID && !user->engineID) {
-            usm_free_user(user);
-            return SNMPERR_GENERR;
-        }
-        user->engineIDLen = session->securityEngineIDLen;
-
         user_just_created = 1;
     }
 
@@ -4155,7 +4159,7 @@ usm_read_user(const char *line)
 /*
  * snmpd.conf parsing routines 
  */
-static void
+void
 usm_parse_config_usmUser(const char *token, char *line)
 {
     struct usmUser *uptr;
@@ -4778,7 +4782,7 @@ usm_create_usmUser_from_string(char *line, const char **errorMsg)
     return NULL;
 }
 
-static void
+void
 usm_parse_create_usmUser(const char *token, char *line)
 {
     const char *error = NULL;

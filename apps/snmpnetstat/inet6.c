@@ -68,7 +68,7 @@ struct stat_table {
     char            description[80];
 };
 
-static char *inet6name(const struct in6_addr *);
+static char *inet6name(const unsigned char *);
 
 /*
  * Print a summary of TCPv6 connections
@@ -140,8 +140,8 @@ tcp6protopr(const char *name)
         ifIndex      = vp->name[ 44 ];
 
         printf("%-5.5s", name);
-        inet6print((struct in6_addr *)localAddr,  localPort,  name, 1);
-        inet6print((struct in6_addr *)remoteAddr, remotePort, name, 0);
+        inet6print(localAddr,  localPort,  name, 1);
+        inet6print(remoteAddr, remotePort, name, 0);
         if ( state < 1 || state > TCP_NSTATES )
             printf(" %4d %d\n", ifIndex, state );
         else
@@ -186,7 +186,7 @@ udp6protopr(const char *name)
          */
         localPort = vp->name[ vp->name_length-2 ];
         ifIndex   = vp->name[ vp->name_length-1 ];
-        inet6print((struct in6_addr *)vp->val.string, localPort, name, 1);
+        inet6print(vp->val.string, localPort, name, 1);
         printf(" %4d\n", ifIndex );
     }
     snmp_free_varbind( var );
@@ -389,7 +389,7 @@ icmp6_stats(const char *name)
  */
 
 void
-inet6print(const struct in6_addr *in6, int port, const char *proto, int local)
+inet6print(unsigned char *in6, int port, const char *proto, int local)
 {
 
 #define GETSERVBYPORT6(port, proto, ret) do { \
@@ -434,12 +434,19 @@ bail:
  */
 
 char *
-inet6name(const struct in6_addr *in6p)
+inet6name(const unsigned char *in6)
 {
 	char *cp;
 	static char line[NI_MAXHOST];
 	static char domain[MAXHOSTNAMELEN];
 	static int first = 1;
+#ifdef NETSNMP_ENABLE_IPV6
+	struct hostent *hp;
+	char hbuf[NI_MAXHOST];
+	const int niflag = NI_NUMERICHOST;
+	struct sockaddr_in6 sin6;
+	const struct in6_addr *in6p = (const struct in6_addr *)in6;
+#endif
 
 	if (first && !nflag) {
 		first = 0;
@@ -450,15 +457,26 @@ inet6name(const struct in6_addr *in6p)
 			domain[0] = '\0';
 	}
 #ifdef NETSNMP_ENABLE_IPV6
-	if (IN6_IS_ADDR_UNSPECIFIED(in6p)) {
+	cp = NULL;
+	if (!nflag && !IN6_IS_ADDR_UNSPECIFIED(in6p)) {
+		hp = netsnmp_gethostbyaddr((const char *)in6p, sizeof(*in6p),
+                                           AF_INET6);
+		if (hp) {
+			if ((cp = strchr(hp->h_name, '.')) &&
+			    !strcmp(cp + 1, domain))
+				*cp = 0;
+			cp = hp->h_name;
+		}
+	}
+	if (IN6_IS_ADDR_UNSPECIFIED(in6p))
 		strlcpy(line, "*", sizeof(line));
-        } else {
-                struct sockaddr_in6 sin6;
-                char hbuf[NI_MAXHOST];
-
-                memset(&sin6, 0, sizeof(sin6));
-                sin6.sin6_family = AF_INET6;
-                sin6.sin6_addr = *in6p;
+	else if (cp)
+		strlcpy(line, cp, sizeof(line));
+	else {
+		memset(&sin6, 0, sizeof(sin6));
+/*		sin6.sin6_len = sizeof(sin6);   */
+		sin6.sin6_family = AF_INET6;
+		sin6.sin6_addr = *in6p;
 #ifdef __KAME__
 		if (IN6_IS_ADDR_LINKLOCAL(in6p) ||
 		    IN6_IS_ADDR_MC_LINKLOCAL(in6p)) {
@@ -469,12 +487,9 @@ inet6name(const struct in6_addr *in6p)
 		}
 #endif
 		if (getnameinfo((struct sockaddr *)&sin6, sizeof(sin6),
-                                hbuf, sizeof(hbuf), NULL, 0,
-                                nflag ? NI_NUMERICHOST : 0) < 0)
-                        strlcpy(hbuf, "?", sizeof(hbuf));
-                if ((cp = strchr(hbuf, '.')) && strcmp(cp + 1, domain) == 0)
-                        *cp = 0;
-                strlcpy(line, hbuf, sizeof(line));
+		    hbuf, sizeof(hbuf), NULL, 0, niflag) != 0)
+			strlcpy(hbuf, "?", sizeof hbuf);
+		strlcpy(line, hbuf, sizeof(line));
 	}
 #else
 	strlcpy(line, "[[XXX - inet6 address]]", sizeof(line));

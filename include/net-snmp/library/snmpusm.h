@@ -90,17 +90,14 @@ extern          "C" {
     /*
      * Prototypes.
      */
-    int             usm_clone_usmStateReference(struct usmStateReference *from,
-                                                    struct usmStateReference **to);
-
     NETSNMP_IMPORT
     int             usm_extend_user_kul(struct usmUser *user,
                                         u_int privKeyBufSize);
     NETSNMP_IMPORT
     struct usmUser *usm_get_userList(void);
     NETSNMP_IMPORT
-    struct usmUser *usm_get_user(u_char * engineID, size_t engineIDLen,
-                                 char *name);
+    struct usmUser *usm_get_user(const u_char *engineID, size_t engineIDLen,
+                                 const char *name);
     NETSNMP_IMPORT
     struct usmUser *usm_add_user(struct usmUser *user);
     NETSNMP_IMPORT
@@ -112,6 +109,9 @@ extern          "C" {
                                        struct usmUser *to);
     NETSNMP_IMPORT
     struct usmUser *usm_remove_user(struct usmUser *user);
+    NETSNMP_IMPORT
+    void            usm_parse_config_usmUser(const char *token,
+                                             char *line);
     NETSNMP_IMPORT
     void            usm_set_user_password(struct usmUser *user,
                                           const char *token, char *line);
@@ -179,6 +179,9 @@ extern          "C" {
 
     NETSNMP_IMPORT
     int             usm_create_user_from_session(netsnmp_session * session);
+    NETSNMP_IMPORT
+    void            usm_parse_create_usmUser(const char *token,
+                                             char *line);
     NETSNMP_IMPORT
     const oid      *get_default_authtype(size_t *);
     NETSNMP_IMPORT

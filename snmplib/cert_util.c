@@ -56,11 +56,20 @@ netsnmp_feature_child_of(tls_fingerprint_build, cert_util_all);
 #   include <sys/stat.h>
 #endif
 #if HAVE_DIRENT_H
-#include <dirent.h>
-#endif
-
-#if HAVE_DMALLOC_H
-#include <dmalloc.h>
+# include <dirent.h>
+# define NAMLEN(dirent) strlen((dirent)->d_name)
+#else
+# define dirent direct
+# define NAMLEN(dirent) (dirent)->d_namlen
+# if HAVE_SYS_NDIR_H
+#  include <sys/ndir.h>
+# endif
+# if HAVE_SYS_DIR_H
+#  include <sys/dir.h>
+# endif
+# if HAVE_NDIR_H
+#  include <ndir.h>
+# endif
 #endif
 
 #include <net-snmp/types.h>
@@ -1396,7 +1405,7 @@ _cert_read_index(const char *dirname, struct stat *dirstat)
     /*
      * check index format version
      */
-    fgets(tmpstr, sizeof(tmpstr), index);
+    NETSNMP_IGNORE_RESULT(fgets(tmpstr, sizeof(tmpstr), index));
     pos = strrchr(tmpstr, ' ');
     if (pos) {
         ++pos;
@@ -1429,8 +1438,8 @@ _cert_read_index(const char *dirname, struct stat *dirstat)
             }
             type = atoi(type_str);
             hash = atoi(hash_str);
-            cert = (void*)_new_cert(dirname, filename, type, hash, fingerprint,
-                                    common_name, subject);
+            cert = _new_cert(dirname, filename, type, hash, fingerprint,
+                             common_name, subject);
             if (cert && 0 == CONTAINER_INSERT(found, cert))
                 ++count;
             else {
@@ -3208,14 +3217,18 @@ netsnmp_tlstmAddr_restore_common(char **line, char *name, size_t *name_len,
                                  char *id, size_t *id_len, char *fp,
                                  size_t *fp_len, u_char *ht)
 {
-    size_t fp_len_save = *fp_len;
+    size_t fp_len_save = *fp_len - 1;
 
     /*
      * Calling this function with name == NULL, fp == NULL or id == NULL would
      * trigger a memory leak.
      */
-    if (!name || !fp || !id)
+    if (!name || !fp || !id || *name_len == 0 || *id_len == 0 || *fp_len == 0)
         return -1;
+
+    (*name_len)--;
+    (*fp_len)--;
+    (*id_len)--;
 
     *line = read_config_read_octet_string(*line, (u_char **)&name, name_len);
     if (NULL == *line) {

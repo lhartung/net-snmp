@@ -143,7 +143,7 @@ static const char *dlmod_dlerror(void)
 {
 #if defined(WIN32)
     static char errstr[256];
-    const uint32_t dwErrorcode = GetLastError();
+    const DWORD dwErrorcode = GetLastError();
     LPTSTR      lpMsgBuf;
 
     FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
@@ -161,7 +161,7 @@ static const char *dlmod_dlerror(void)
         snprintf(errstr, sizeof(errstr), "%s", lpMsgBuf);
         LocalFree(lpMsgBuf);
     } else {
-        snprintf(errstr, sizeof(errstr), "error code %d", dwErrorcode);
+        snprintf(errstr, sizeof(errstr), "error code %ld", dwErrorcode);
     }
     return errstr;
 #else
@@ -232,7 +232,7 @@ dlmod_load_module(struct dlmod *dlm)
         dl_function_ptr dl_init;
 
         snprintf(sym_init, sizeof(sym_init), "init_%s", dlm->name);
-        dl_init = (dl_function_ptr)dlmod_dlsym(dlm->handle, sym_init);
+        dl_init = dlmod_dlsym(dlm->handle, sym_init);
         if (dl_init == NULL) {
             dlmod_dlclose(dlm->handle);
             free(dlm->error);
@@ -259,10 +259,10 @@ dlmod_unload_module(struct dlmod *dlm)
         return;
 
     snprintf(sym_deinit, sizeof(sym_deinit), "deinit_%s", dlm->name);
-    dl_deinit = (dl_function_ptr)dlmod_dlsym(dlm->handle, sym_deinit);
+    dl_deinit = dlmod_dlsym(dlm->handle, sym_deinit);
     if (!dl_deinit) {
         snprintf(sym_deinit, sizeof(sym_deinit), "shutdown_%s", dlm->name);
-        dl_deinit = (dl_function_ptr)dlmod_dlsym(dlm->handle, sym_deinit);
+        dl_deinit = dlmod_dlsym(dlm->handle, sym_deinit);
     }
     if (dl_deinit) {
         DEBUGMSGTL(("dlmod", "Calling %s()\n", sym_deinit));

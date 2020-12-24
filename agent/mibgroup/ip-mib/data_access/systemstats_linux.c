@@ -14,6 +14,7 @@
 #include "systemstats.h"
 #include "systemstats_private.h"
 
+#include <stdint.h>
 #include <sys/types.h>
 #include <dirent.h>
 #include <ctype.h>
@@ -123,7 +124,7 @@ _systemstats_v4(netsnmp_container* container, u_int load_flags)
     /*
      * skip header, but make sure it's the length we expect...
      */
-    fgets(line, sizeof(line), devin);
+    NETSNMP_IGNORE_RESULT(fgets(line, sizeof(line), devin));
     len = strlen(line);
     if (224 != len) {
         fclose(devin);

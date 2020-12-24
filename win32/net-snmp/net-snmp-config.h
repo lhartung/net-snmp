@@ -40,6 +40,17 @@
  * Windows XP and higher.  */
 /* #undef NETSNMP_ENABLE_IPV6 */
 
+/* Only use Windows API functions available on Windows 2000 SP4 or later.  
+ * We need at least SP1 for some IPv6 defines in ws2ipdef.h
+ */
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x600 /*_WIN32_WINNT_WIN6*/
+#else
+#if _WIN32_WINNT < 0x501
+#error _WIN32_WINNT is too low - it should be set to at least 0x501.
+#endif
+#endif
+
 #define INSTALL_BASE "c:/usr"
 
 /* config.h:  a general config file */
@@ -152,9 +163,6 @@
 
 /* Use libwrap to handle allow/deny hosts? */
 /* #undef NETSNMP_USE_LIBWRAP */
-
-/* Use dmalloc to do malloc debugging? */
-/* #undef HAVE_DMALLOC_H */
 
 /* Define if _beginthreadex() is defined in <process.h> */
 #define HAVE__BEGINTHREADEX 1
@@ -406,9 +414,6 @@
 /* Define to 1 if you have the `crypto' library (-lcrypto). */
 /* #undef HAVE_LIBCRYPTO */
 
-/* Define to 1 if you have the `efence' library (-lefence). */
-/* #undef HAVE_LIBEFENCE */
-
 /* Define to 1 if you have the `elf' library (-lelf). */
 /* #undef HAVE_LIBELF */
 
@@ -448,6 +453,9 @@
 /* Define to 1 if you have the <linux/tasks.h> header file. */
 /* #undef HAVE_LINUX_TASKS_H */
 
+/* Define to 1 if you have the <lm.h> header file. */
+#define HAVE_LM_H 1
+
 /* Define to 1 if you have the <locale.h> header file. */
 #define HAVE_LOCALE_H 1
 
@@ -480,6 +488,9 @@
 
 /* Define to 1 if you have the <mtab.h> header file. */
 /* #undef HAVE_MTAB_H */
+
+/* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
+/* #undef HAVE_NDIR_H */
 
 /* Define to 1 if you have the <netdb.h> header file. */
 /* #undef HAVE_NETDB_H */
@@ -695,7 +706,9 @@
 /* #undef HAVE_STATVFS */
 
 /* Define to 1 if you have the <stdint.h> header file. */
+#ifdef __MINGW32__
 #define HAVE_STDINT_H 1
+#endif
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 #define HAVE_STDLIB_H 1
@@ -787,6 +800,10 @@
 
 /* Define to 1 if you have the <sys/mount.h> header file. */
 /* #undef HAVE_SYS_MOUNT_H */
+
+/* Define to 1 if you have the <sys/ndir.h> header file, and it defines `DIR'.
+   */
+/* #undef HAVE_SYS_NDIR_H */
 
 /* Define to 1 if you have the <sys/param.h> header file. */
 /* #undef HAVE_SYS_PARAM_H */
@@ -984,6 +1001,29 @@
 /* Define as the return type of signal handlers (`int' or `void'). */
 #define RETSIGTYPE void
 
+/* The size of a `int', as computed by sizeof. */
+#define SIZEOF_INT 4
+
+/* The size of a `long', as computed by sizeof. */
+#define SIZEOF_LONG 4
+
+/* The size of a `intmax_t', as computed by sizeof. */
+#define SIZEOF_INTMAX_T 8
+
+/* The size of a `short', as computed by sizeof. */
+#define SIZEOF_SHORT 2
+
+/* If using the C implementation of alloca, define if you know the
+   direction of stack growth for your system; otherwise it will be
+   automatically deduced at run-time.
+        STACK_DIRECTION > 0 => grows toward higher addresses
+        STACK_DIRECTION < 0 => grows toward lower addresses
+        STACK_DIRECTION = 0 => direction of growth unknown */
+/* #undef STACK_DIRECTION */
+
+/* Define to 1 if you have the ANSI C header files. */
+#define STDC_HEADERS 1
+
 /* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
 /* #undef TIME_WITH_SYS_TIME */
 
@@ -1134,7 +1174,7 @@
 /* #undef NETSNMP_CAN_USE_SYSCTL */
 
 /* type check for in_addr_t */
-/* #undef in_addr_t */
+#define in_addr_t unsigned long
 
 /* define if SIOCGIFADDR exists in sys/ioctl.h */
 /* #undef SYS_IOCTL_H_HAS_SIOCGIFADDR */
@@ -1895,9 +1935,6 @@ enum {
 #ifdef HAVE_WIN32_PLATFORM_SDK
 #define HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY 1
 #endif
-
-/* Size prefix to use to printf a uint32_t */
-#define NETSNMP_PRI32 ""
 
 #ifdef _MSC_VER
 #ifdef _WIN64

@@ -79,6 +79,9 @@
 #include <basetsd.h>
 #define ssize_t SSIZE_T
 #endif
+#if HAVE_RAISE
+#define alarm raise
+#endif
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
 #endif
@@ -293,7 +296,7 @@ get_exec_output(struct extensible *ex)
                 return -1;
         }
         if (cachebytes > 0)
-            write(cfd, (void *) cache, cachebytes);
+            NETSNMP_IGNORE_RESULT(write(cfd, cache, cachebytes));
         close(cfd);
 #ifdef NETSNMP_EXCACHETIME
         lastresult = ex->result;
@@ -328,8 +331,8 @@ get_exec_output(struct extensible *ex)
     
     /* Child temporary output pipe with Inheritance on (sa.bInheritHandle is true) */    
     if (!CreatePipe(&hOutputReadTmp,&hOutputWrite,&sa,0)) {
-      DEBUGMSGTL(("util_funcs", "get_exec_pipes CreatePipe ChildOut: %u\n",
-                  (unsigned int)GetLastError()));
+      DEBUGMSGTL(("util_funcs", "get_exec_pipes CreatePipe ChildOut: %lu\n",
+            GetLastError()));
       return -1;
     }
     
@@ -337,8 +340,7 @@ get_exec_output(struct extensible *ex)
      * its stdout handles. */
     if (!DuplicateHandle(GetCurrentProcess(),hOutputWrite, GetCurrentProcess(),
           &hErrorWrite,0, TRUE,DUPLICATE_SAME_ACCESS)) {
-      DEBUGMSGTL(("util_funcs", "get_exec_output DuplicateHandle: %u\n",
-                  (unsigned int)GetLastError()));
+      DEBUGMSGTL(("util_funcs", "get_exec_output DuplicateHandle: %lu\n", GetLastError()));
       return -1;
     }
 
@@ -347,18 +349,14 @@ get_exec_output(struct extensible *ex)
      * be closed.  */
     if (!DuplicateHandle(GetCurrentProcess(), hOutputReadTmp, GetCurrentProcess(),
           &hOutputRead, 0, FALSE, DUPLICATE_SAME_ACCESS)) {
-      DEBUGMSGTL(("util_funcs",
-		  "get_exec_output DupliateHandle ChildOut: %u\n",
-                  (unsigned int)GetLastError()));
+      DEBUGMSGTL(("util_funcs", "get_exec_output DupliateHandle ChildOut: %lu\n", GetLastError()));
       CloseHandle(hErrorWrite);
       return -1;
     }   
 
     /* Close the temporary output and input handles */
     if (!CloseHandle(hOutputReadTmp)) {
-      DEBUGMSGTL(("util_funcs",
-                  "get_exec_output CloseHandle (hOutputReadTmp): %u\n",
-                  (unsigned int)GetLastError()));
+      DEBUGMSGTL(("util_funcs", "get_exec_output CloseHandle (hOutputReadTmp): %lu\n", GetLastError()));
       CloseHandle(hErrorWrite);
       CloseHandle(hOutputRead);
       return -1;
@@ -380,9 +378,7 @@ get_exec_output(struct extensible *ex)
      * pass_persist    .1.3.6.1.4.1.2021.255  c:/perl/bin/perl c:/temp/pass_persisttest
     */
     if (!CreateProcess(NULL, ex->command, NULL, NULL, TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi)) {
-      DEBUGMSGTL(("util_funcs",
-                  "get_exec_output CreateProcess:'%s' %u\n", ex->command,
-                  (unsigned int)GetLastError()));
+      DEBUGMSGTL(("util_funcs","get_exec_output CreateProcess:'%s' %lu\n",ex->command, GetLastError()));
       CloseHandle(hErrorWrite);
       CloseHandle(hOutputRead);
       return -1;
@@ -399,15 +395,13 @@ get_exec_output(struct extensible *ex)
      */
 
     if (!CloseHandle(hOutputWrite)){
-      DEBUGMSGTL(("util_funcs",
-		  "get_exec_output CloseHandle hOutputWrite: %u\n",
-                  (unsigned int)GetLastError()));
+      DEBUGMSGTL(("util_funcs","get_exec_output CloseHandle hOutputWrite: %lu\n",
+                  GetLastError()));
       return -1;
     }
     if (!CloseHandle(hErrorWrite)) {
-      DEBUGMSGTL(("util_funcs",
-		  "get_exec_output CloseHandle hErrorWrite: %u\n",
-                  (unsigned int)GetLastError()));
+      DEBUGMSGTL(("util_funcs","get_exec_output CloseHandle hErrorWrite: %lu\n",
+                  GetLastError()));
       return -1;
     }
     return fd;
@@ -507,7 +501,7 @@ get_exec_pipes(char *cmd, int *fdIn, int *fdOut, netsnmp_pid_t *pid)
          * close all non-standard open file descriptors 
          */
         netsnmp_close_fds(1);
-        (void) dup(1);          /* stderr */
+        NETSNMP_IGNORE_RESULT(dup(1));  /* stderr */
 
         for (cnt = 1, cptr1 = cmd, cptr2 = argvs; *cptr1 != 0;
              cptr2++, cptr1++) {

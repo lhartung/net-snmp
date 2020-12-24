@@ -20,6 +20,9 @@
  */
 #define dynix dynix
 
+#undef TOTAL_MEMORY_SYMBOL
+#undef MBSTAT_SYMBOL
+
 /*
  * Not enough alcohool in bloodstream [fmc] 
  */

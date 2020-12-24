@@ -631,7 +631,7 @@ register_netsnmp_handler(winextdll_view * const ext_dll_view_info)
         memset(ext_dll_view_info, 0, sizeof(*ext_dll_view_info));
         return 1;
     } else {
-        /* Create handler registration */
+        // Create handler registration
         ext_dll_view_info->my_handler
             = netsnmp_create_handler_registration(ext_dll_info->dll_name,
                                                   var_winExtDLL,
@@ -967,14 +967,13 @@ var_winExtDLL(netsnmp_mib_handler *handler,
                                              ext_dll_view_info->name,
                                              ext_dll_view_info->name_length);
                 DEBUGMSG(("winExtDLL", "extension DLL %s: SNMP query function"
-                          " returned error code %u (Windows) / %d (Net-SNMP)"
+                          " returned error code %lu (Windows) / %d (Net-SNMP)"
                           " for request type %d, OID %s%s, ASN type %d and"
-                          " value %d.\n",
-                          ext_dll_info->dll_name, (unsigned int)ErrorStatus, rc,
-                          nRequestType, oid_name,
-                          overflow ? " [TRUNCATED]" : "",
+                          " value %ld.\n",
+                          ext_dll_info->dll_name, ErrorStatus, rc, nRequestType,
+                          oid_name, overflow ? " [TRUNCATED]" : "",
                           win_varbinds.list[0].value.asnType,
-                          (unsigned int)win_varbinds.list[0].value.asnValue.number));
+                          win_varbinds.list[0].value.asnValue.number));
                 free(oid_name);
             }
             netsnmp_assert(ErrorIndex == 1);
@@ -1456,7 +1455,7 @@ append_windows_varbind(netsnmp_variable_list ** const net_snmp_varbinds,
                                     sizeof(win_varbind->value.asnValue.
                                            ticks));
         break;
-    case MS_ASN_OPAQUE:        /* AsnOctetString */
+    case MS_ASN_OPAQUE:        // AsnOctetString
         snmp_varlist_add_variable_w(net_snmp_varbinds, win_varbind->name.ids,
                                     win_varbind->name.idLength,
                                     ASN_OPAQUE,
@@ -1542,7 +1541,7 @@ convert_to_windows_varbind_list(SnmpVarBindList * pVarBindList,
 
     switch (varbind->type) {
     case ASN_BOOLEAN:
-        /* There is no equivalent type in Microsoft's <snmp.h>. */
+        // There is no equivalent type in Microsoft's <snmp.h>.
         netsnmp_assert(0);
         win_varbind->value.asnType = MS_ASN_INTEGER;
         win_varbind->value.asnValue.number = *(varbind->val.integer);
@@ -1587,7 +1586,7 @@ convert_to_windows_varbind_list(SnmpVarBindList * pVarBindList,
         win_varbind->value.asnValue.string.dynamic = TRUE;
         break;
     case ASN_SET:
-        /* There is no equivalent type in Microsoft's <snmp.h>. */
+        // There is no equivalent type in Microsoft's <snmp.h>.
         netsnmp_assert(0);
         win_varbind->value.asnType = MS_ASN_INTEGER;
         win_varbind->value.asnValue.number = *(varbind->val.integer);

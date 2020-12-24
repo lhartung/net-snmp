@@ -533,6 +533,9 @@ netsnmp_udpbase_send(netsnmp_transport *t, const void *buf, int size,
 void
 netsnmp_udp_base_ctor(void)
 {
+    netsnmp_static_assert(sizeof(in_addr_t) ==
+                          sizeof((struct sockaddr_in *)NULL)->sin_addr);
+
 #if defined(WIN32) && defined(HAVE_IP_PKTINFO)
     SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
     GUID WSARecvMsgGuid = WSAID_WSARECVMSG;
@@ -546,7 +549,7 @@ netsnmp_udp_base_ctor(void)
                       &WSARecvMsgGuid, sizeof(WSARecvMsgGuid),
                       &pfWSARecvMsg, sizeof(pfWSARecvMsg), &nbytes, NULL, NULL);
     if (result == SOCKET_ERROR)
-        DEBUGMSGTL(("netsnmp_udp", "WSARecvMsg() not found (errno %d)\n",
+        DEBUGMSGTL(("netsnmp_udp", "WSARecvMsg() not found (errno %ld)\n",
                     WSAGetLastError()));
 
     /* WSASendMsg(): Windows Vista / Windows Server 2008 and later */
@@ -554,7 +557,7 @@ netsnmp_udp_base_ctor(void)
                       &WSASendMsgGuid, sizeof(WSASendMsgGuid),
                       &pfWSASendMsg, sizeof(pfWSASendMsg), &nbytes, NULL, NULL);
     if (result == SOCKET_ERROR)
-        DEBUGMSGTL(("netsnmp_udp", "WSASendMsg() not found (errno %d)\n",
+        DEBUGMSGTL(("netsnmp_udp", "WSASendMsg() not found (errno %ld)\n",
                     WSAGetLastError()));
 
     closesocket(s);

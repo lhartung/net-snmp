@@ -7,6 +7,9 @@
 ##
 #   Standard checks:
 ##
+#  Core:
+AC_HEADER_STDC          #  <stdlib.h>, <stdarg.h>,   <string.h>  & <float.h>
+AC_HEADER_DIRENT        #  <dirent.h>, <sys/ndir.h>, <sys/dir.h> & <ndir.h>
 #  Apps:
 # Don't use <sys/wait.h> when using Windows sockets
 case x$with_socklib in
@@ -43,9 +46,10 @@ AC_INCLUDES_DEFAULT
 ]])
 
 #  Library:
-AC_CHECK_HEADERS([dirent.h         fcntl.h             ] dnl
-                 [io.h             kstat.h             ] dnl
-                 [limits.h         locale.h            ] dnl
+AC_CHECK_HEADERS([crt_externs.h                        ] dnl
+                 [fcntl.h    io.h       kstat.h        ] dnl
+                 [limits.h   locale.h                  ] dnl
+                 [mach-o/dyld.h                        ] dnl
                  [sys/file.h       sys/ioctl.h         ] dnl
                  [sys/sockio.h     sys/stat.h          ] dnl
                  [sys/systemcfg.h  sys/systeminfo.h    ] dnl
@@ -126,34 +130,11 @@ AC_CHECK_HEADERS(sys/swap.h,,,
 
 #       requiring <sys/param.h>                         (FreeBSD)
 #
-#  Core:      (? Tested above? )
-AC_CHECK_HEADERS([stdlib.h  ],,,
-    [[
-#if HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
-#if HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
-    ]])
-#
-#  Library:
-AC_CHECK_HEADERS([malloc.h        sys/sysctl.h    ],,,
-    [[
-#if HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
-#if HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
-    ]])
-#
-#  Agent:
 AC_CHECK_HEADERS([malloc.h        osreldate.h                   ] dnl
                  [machine/types.h ] dnl
                  [sys/dkstat.h    sys/conf.h    sys/mbuf.h      ] dnl
                  [sys/mount.h     sys/proc.h    sys/queue.h     ] dnl
-                 [sys/sysctl.h    sys/user.h                    ],,,
+                 [sys/user.h                                    ],,,
     [[
 #if HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -162,6 +143,17 @@ AC_CHECK_HEADERS([malloc.h        osreldate.h                   ] dnl
 #include <sys/param.h>
 #endif
     ]])
+
+case "$target_os" in
+    linux*)
+	# <sys/sysctl.h> is considered deprecated on Linux and including that
+	# header file triggers a compiler warning. See also
+	# https://savannah.gnu.org/forum/forum.php?forum_id=9515.
+        ;;
+    *)
+	AC_CHECK_HEADERS([sys/sysctl.h])
+        ;;
+esac
 
 #       requiring <sys/sema.h>                          (IRIX 6.5)
 #  Agent:
@@ -447,6 +439,12 @@ esac
 #  Core:
 #
 AC_CHECK_HEADERS([windows.h iphlpapi.h], [], [], [
+#ifdef HAVE_WINDOWS_H
+#include <windows.h>
+#endif
+])
+
+AC_CHECK_HEADERS([lm.h], [LAGENTLIBS="$LAGENTLIBS -lnetapi32"], [], [
 #ifdef HAVE_WINDOWS_H
 #include <windows.h>
 #endif

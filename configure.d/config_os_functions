@@ -13,18 +13,8 @@
 ##
 #   Standard checks:
 ##
-
+AC_FUNC_ALLOCA          #  alloca()
 AC_PROG_GCC_TRADITIONAL
-
-if test "$cross_compiling" = yes -a "${ac_cv_func_memcmp_working+set}" != set
-then
-  # Cross-compiling and ac_cv_func_memcmp_working has not been set - assume
-  # that memcmp() is available.
-  ac_cv_func_memcmp_working=yes
-else
-  # Native compilation - test for the availability of memcmp().
-  AC_FUNC_MEMCMP
-fi
 
 AC_TYPE_SIGNAL
 
@@ -44,6 +34,26 @@ AC_CHECK_FUNCS([asprintf        closedir        fgetc_unlocked   ] dnl
                [setsid          snprintf        strcasestr       ] dnl
                [strdup          strerror        strncasecmp      ] dnl
                [sysconf         times           vsnprintf        ] )
+
+AC_MSG_CHECKING([for _NSGetArgv()])
+AC_LINK_IFELSE(
+  [AC_LANG_PROGRAM([#include <crt_externs.h>], [return _NSGetArgv])],
+  [AC_DEFINE([HAVE__NSGETARGV], [1],
+    [Define to 1 if you have the `_NSGetArgv' function.])
+    AC_MSG_RESULT([yes])
+  ],
+  [AC_MSG_RESULT([no])]
+)
+
+AC_MSG_CHECKING([for _NSGetExecutablePath()])
+AC_LINK_IFELSE(
+  [AC_LANG_PROGRAM([#include <mach-o/dyld.h>], [return _NSGetExecutablePath])],
+  [AC_DEFINE([HAVE__NSGETEXECUTABLEPATH], [1],
+    [Define to 1 if you have the `_NSGetExecutablePath' function.])
+    AC_MSG_RESULT([yes])
+  ],
+  [AC_MSG_RESULT([no])]
+)
 
 # IPv4/IPv6 function checks. AC_CHECK_FUNC() can't find these on MinGW
 # since these functions have the __cdecl calling convention on MinGW.
@@ -160,14 +170,6 @@ AC_CHECK_FUNCS([cgetnext        chown          forkall         ] dnl
                [sigprocmask                                    ] dnl
                [statfs          statvfs       stime            ] dnl
                [strncasecmp     system        usleep           ] )
-
-AC_MSG_CHECKING([for FD_CLOEXEC])
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
-        [[#include <fcntl.h>]],[[return FD_CLOEXEC]]
-    )], [AC_MSG_RESULT([yes])
-	 AC_DEFINE([HAVE_FD_CLOEXEC], [1],
-            [Define if FD_CLOEXEC is defined in <fcntl.h>])],
-    [AC_MSG_RESULT([no])])
 
 #  Apps:
 AC_CHECK_FUNCS([getdtablesize                                  ] dnl
@@ -310,68 +312,41 @@ fi
 #   Check how to print a size_t variable
 ##
 
-AC_CACHE_CHECK(
-    [the underlying type of a size_t],
-    netsnmp_cv_size_t_type,
-    [m4_foreach([TYPE], [[int],[long],[long long],[short],[char]],
-     [if [[ "x$netsnmp_cv_size_t_type" = x ]] ; then
-         AC_COMPILE_IFELSE(
-	     [AC_LANG_PROGRAM(
-[AC_INCLUDES_DEFAULT()
-extern unsigned TYPE variable;
-extern size_t variable;],
-                 [])],
-             [netsnmp_cv_size_t_type="TYPE"])
-     fi
-    ])])
+case x${host_cpu}-${host_vendor}-${host_os} in
+  x*mingw*)
+    # MinGW or MinGW-w64.
+    AC_CACHE_CHECK(
+      [the underlying type of size_t],
+      [netsnmp_cv_size_t_type],
+      [for TYPE in int long "long long" short char; do
+        AC_COMPILE_IFELSE(
+          [AC_LANG_PROGRAM([
+            AC_INCLUDES_DEFAULT()
+            extern unsigned $TYPE variable;
+            extern size_t variable;
+          ], [])],
+          [netsnmp_cv_size_t_type="$TYPE"])
+        if test "x$netsnmp_cv_size_t_type" != x; then break; fi
+      done])
 
-AC_MSG_CHECKING([how to printf a size_t])
-case "$netsnmp_cv_size_t_type" in
-    char|short|int) netsnmp_PRIz="" ;;
-    long) netsnmp_PRIz="l" ;;
-    "long long")
-        case x${host_cpu}-${host_vendor}-${host_os} in
-        x*-w64-*|xx86_64-pc-mingw32)
-            # MinGW-w64
-            netsnmp_PRIz="I64";;
-        *)
-            netsnmp_PRIz="ll";;
-        esac;;
-    *) AC_MSG_ERROR([underlying type of size_t not known]) ;;
+    AC_MSG_CHECKING([how to printf a size_t])
+    case "$netsnmp_cv_size_t_type" in
+      char|short|int)
+        netsnmp_PRIz="";;
+      long)
+        netsnmp_PRIz="l";;
+      "long long")
+        netsnmp_PRIz="I64";;
+      *)
+        AC_MSG_ERROR([underlying type of size_t not known]);;
+    esac
+    AC_MSG_RESULT([$netsnmp_PRIz]);;
+  *)
+    # Unix or Cygwin.
+    netsnmp_PRIz="z";;
 esac
-AC_MSG_RESULT($netsnmp_PRIz)
 AC_DEFINE_UNQUOTED([NETSNMP_PRIz], ["$netsnmp_PRIz"],
                    [Size prefix to use to printf a size_t or ssize_t])
-
-##
-#   Check how to print a uint32_t variable
-##
-
-AC_CACHE_CHECK(
-    [the underlying type of an uint32_t],
-    netsnmp_cv_uint32_t_type,
-    [m4_foreach([TYPE], [[char],[short],[int],[long],[long long]],
-     [if [[ x$netsnmp_cv_uint32_t_type = x ]] ; then
-         AC_COMPILE_IFELSE(
-	     [AC_LANG_PROGRAM(
-[AC_INCLUDES_DEFAULT()
-extern unsigned TYPE variable;
-extern uint32_t variable;],
-                 [])],
-             [netsnmp_cv_uint32_t_type="TYPE"])
-     fi
-    ])])
-
-AC_MSG_CHECKING([how to printf a uint32_t])
-case "$netsnmp_cv_uint32_t_type" in
-    char|short|int) netsnmp_PRI32="" ;;
-    long) netsnmp_PRI32="l" ;;
-    "long long") netsnmp_PRI32="ll" ;;
-    *) AC_MSG_ERROR([underlying type of uint32_t not known]) ;;
-esac
-AC_MSG_RESULT($netsnmp_PRI32)
-AC_DEFINE_UNQUOTED([NETSNMP_PRI32], ["$netsnmp_PRI32"],
-                   [Size prefix to use to printf a uint32_t])
 
 # check to see if the openssl is good enough for DTLS
 # (BIO_dgram_get_peer is a macro, not a true function)

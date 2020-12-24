@@ -178,7 +178,8 @@ real_init_master(void)
                         agentx_sock_user = -1;
                     if (agentx_sock_group == 0 )
                         agentx_sock_group = -1;
-                    chown(name, agentx_sock_user, agentx_sock_group);
+                    NETSNMP_IGNORE_RESULT(chown(name, agentx_sock_user,
+                                                agentx_sock_group));
                 }
             }
 #endif
@@ -230,7 +231,7 @@ agentx_got_response(int operation,
 
     switch (operation) {
     case NETSNMP_CALLBACK_OP_TIMED_OUT:{
-            struct session_list *s = snmp_sess_pointer(session);
+            void           *s = snmp_sess_pointer(session);
             DEBUGMSGTL(("agentx/master", "timeout on session %8p req=0x%x\n",
                         session, (unsigned)reqid));
 

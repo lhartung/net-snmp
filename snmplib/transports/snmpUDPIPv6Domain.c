@@ -34,6 +34,11 @@
 #if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
+
+#if defined(HAVE_WINSOCK_H) && !defined(mingw32)
+static const struct in6_addr in6addr_any = IN6ADDR_ANY_INIT;
+#endif
+
 #if HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
@@ -45,10 +50,6 @@
 #endif
 #if HAVE_NET_IF_H
 #include <net/if.h>
-#endif
-
-#if HAVE_DMALLOC_H
-#include <dmalloc.h>
 #endif
 
 #if HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY

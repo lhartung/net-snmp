@@ -134,10 +134,6 @@ SOFTWARE.
 #include <winperf.h> /* PERF_DATA_BLOCK */
 #endif
 
-#if HAVE_DMALLOC_H
-#include <dmalloc.h>
-#endif
-
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
 #endif
@@ -161,8 +157,12 @@ SOFTWARE.
 #include <sys/systeminfo.h>
 #endif
 
-#if defined(darwin9)
+#if HAVE_CRT_EXTERNS_H
 #include <crt_externs.h>        /* for _NSGetArgv() */
+#endif
+
+#ifdef HAVE_MACH_O_DYLD_H
+#include <mach-o/dyld.h>
 #endif
 
 #if HAVE_PWD_H
@@ -228,7 +228,7 @@ _daemon_prep(int stderr_log)
     int fd;
 
     /* Avoid keeping any directory in use. */
-    chdir("/");
+    NETSNMP_IGNORE_RESULT(chdir("/"));
 
     if (stderr_log)
         return;
@@ -283,7 +283,7 @@ netsnmp_daemonize(int quit_immediately, int stderr_log)
     int i = 0;
     DEBUGMSGT(("daemonize","deamonizing...\n"));
 #if HAVE_FORK
-#if defined(darwin9)
+#if HAVE__NSGETEXECUTABLEPATH
      char            path [PATH_MAX] = "";
      uint32_t        size = sizeof (path);
 
@@ -349,7 +349,7 @@ netsnmp_daemonize(int quit_immediately, int stderr_log)
             
             DEBUGMSGT(("daemonize","child continuing\n"));
 
-#if ! defined(darwin9)
+#if !defined(HAVE__NSGETARGV)
             _daemon_prep(stderr_log);
 #else
              /*
@@ -705,12 +705,11 @@ get_uptime(void)
     u_long          lbolt = 0;
 
     if (ksc) {
-        ks = kstat_lookup(ksc, NETSNMP_REMOVE_CONST(char *, "unix"), -1,
-                          NETSNMP_REMOVE_CONST(char *, "system_misc"));
+        ks = kstat_lookup(ksc, "unix", -1, "system_misc");
         if (ks) {
             kid = kstat_read(ksc, ks, NULL);
             if (kid != -1) {
-                named = kstat_data_lookup(ks, NETSNMP_REMOVE_CONST(char *, "lbolt"));
+                named = kstat_data_lookup(ks, "lbolt");
                 if (named) {
 #ifdef KSTAT_DATA_UINT32
                     lbolt = named->value.ui32;
@@ -1038,7 +1037,7 @@ netsnmp_gethostbyaddr(const void *addr, socklen_t len, int type)
 
 /*******************************************************************/
 
-#ifndef HAVE_STRNCASECMP
+#if !defined(HAVE_STRNCASECMP) && !defined(strncasecmp)
 
 /*
  * test for NULL pointers before and NULL characters after
@@ -1087,7 +1086,7 @@ strcasecmp(const char *s1, const char *s2)
     return strncasecmp(s1, s2, 1000000);
 }
 
-#endif                          /* HAVE_STRNCASECMP */
+#endif                /* !defined(HAVE_STRNCASECMP) && !defined(strncasecmp) */
 
 
 #ifndef HAVE_STRDUP

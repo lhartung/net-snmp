@@ -136,6 +136,8 @@ _fsys_type( char *typename )
     else if ( !strcmp(typename, MNTTYPE_TMPFS) ||
               !strcmp(typename, MNTTYPE_GFS) ||
               !strcmp(typename, MNTTYPE_GFS2) ||
+              !strcmp(typename, MNTTYPE_GLUSTERFS) ||
+              !strcmp(typename, MNTTYPE_FUSEGLUSTERFS) ||    
               !strcmp(typename, MNTTYPE_XFS) ||
               !strcmp(typename, MNTTYPE_JFS) ||
               !strcmp(typename, MNTTYPE_VXFS) ||
@@ -147,6 +149,8 @@ _fsys_type( char *typename )
               !strcmp(typename, MNTTYPE_ZFS) ||
               !strcmp(typename, MNTTYPE_NVMFS) ||
               !strcmp(typename, MNTTYPE_ACFS) ||
+              !strcmp(typename, MNTTYPE_NSS_VOL) ||
+              !strcmp(typename, MNTTYPE_NSS_POOL) ||
               !strcmp(typename, MNTTYPE_LOFS))
        return NETSNMP_FS_TYPE_OTHER;
 
@@ -219,7 +223,7 @@ netsnmp_fsys_arch_load( void )
         if ( _fsys_remote( entry->device, entry->type ))
             entry->flags |= NETSNMP_FS_FLAG_REMOTE;
 #if HAVE_HASMNTOPT
-        if (hasmntopt( m, NETSNMP_REMOVE_CONST(char *, "ro") ))
+        if (hasmntopt( m, "ro" ))
             entry->flags |= NETSNMP_FS_FLAG_RONLY;
         else
             entry->flags &= ~NETSNMP_FS_FLAG_RONLY;
@@ -256,18 +260,15 @@ netsnmp_fsys_arch_load( void )
         if ( NSFS_STATFS( entry->path, &stat_buf ) < 0 )
 #endif
         {
-            tmpbuf = NULL;
-            if (asprintf(&tmpbuf, "Cannot statfs %s", entry->path) >= 0)
+            static char logged = 0;
+
+            if (!logged &&
+                asprintf(&tmpbuf, "Cannot statfs %s", entry->path) >= 0) {
                 snmp_log_perror(tmpbuf);
-            free(tmpbuf);
-            entry->units = stat_buf.NSFS_SIZE;
-            entry->size  = 0;
-            entry->used  = 0;
-            entry->avail = 0;
-            entry->inums_total = stat_buf.f_files;
-            entry->inums_avail = stat_buf.f_ffree;
-            netsnmp_fsys_calculate32(entry);
-            continue;
+                free(tmpbuf);
+                logged = 1;
+            }
+            memset(&stat_buf, 0, sizeof(stat_buf));
         }
         entry->units =  stat_buf.NSFS_SIZE;
         entry->size  =  stat_buf.f_blocks;

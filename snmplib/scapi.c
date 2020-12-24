@@ -52,9 +52,6 @@
 #include <unistd.h>
 #endif
 #include "memcheck.h"
-#if HAVE_DMALLOC_H
-#include <dmalloc.h>
-#endif
 
 #include <net-snmp/types.h>
 #include <net-snmp/output_api.h>
@@ -116,11 +113,12 @@ netsnmp_feature_child_of(usm_scapi, usm_support);
 
 #ifdef QUITFUN
 #undef QUITFUN
-#define QUITFUN(e, l)					\
+#define QUITFUN(e, l) do {                              \
 	if (e != SNMPERR_SUCCESS) {			\
 		rval = SNMPERR_SC_GENERAL_FAILURE;	\
 		goto l ;				\
-	}
+        }                                               \
+    } while (0)
 #endif
 
 #ifdef NETSNMP_USE_INTERNAL_CRYPTO

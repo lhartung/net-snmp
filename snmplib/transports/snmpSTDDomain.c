@@ -19,10 +19,6 @@
 #include <unistd.h>
 #endif
 
-#if HAVE_DMALLOC_H
-#include <dmalloc.h>
-#endif
-
 #include <net-snmp/types.h>
 #include <net-snmp/output_api.h>
 
@@ -241,7 +237,7 @@ netsnmp_std_transport(const char *instring, size_t instring_len,
             close(outfd[1]);
 
             /* call exec */
-            system(instring);
+            NETSNMP_IGNORE_RESULT(system(instring));
             /* XXX: TODO: use exec form instead; needs args */
             /* execv(instring, NULL); */
             exit(0);

@@ -32,6 +32,7 @@
 
 #include <net-snmp/net-snmp-config.h>
 
+#include <stdint.h>
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -65,7 +66,7 @@ struct stat_table {
     char            description[80];
 };
 
-static char *inetname(const struct in_addr *);
+static char *inetname(struct in_addr *);
 
 	/*
 	 * Print a summary of connections related to
@@ -553,7 +554,7 @@ udp_stats(const char *name)
  * If the nflag was specified, use numbers instead of names.
  */
 void
-inetprint(const struct in_addr *in, int port, const char *proto, int local)
+inetprint(struct in_addr *in, int port, const char *proto, int local)
 {
 	struct servent *sp = NULL;
 	char line[80], *cp;
@@ -585,13 +586,17 @@ inetprint(const struct in_addr *in, int port, const char *proto, int local)
  * numeric value, otherwise try for symbolic name.
  */
 char *
-inetname(const struct in_addr *inp)
+inetname(struct in_addr *inp)
 {
 	char *cp;
 	static char line[50];
+	struct hostent *hp;
 	struct netent *np;
 	static char domain[MAXHOSTNAMELEN];
 	static int first = 1;
+#if defined (WIN32) || defined (cygwin)
+        char host_temp[] = "localhost";
+#endif
 
 	if (first && !nflag) {
 		char tmp[MAXHOSTNAMELEN];
@@ -602,42 +607,45 @@ inetname(const struct in_addr *inp)
 		else
 			domain[0] = '\0';
 	}
-        if (inp->s_addr == INADDR_ANY) {
-                strlcpy(line, "*", sizeof(line));
-        } else {
-                char host[16];
+	cp = NULL;
+	if (!nflag && inp->s_addr != INADDR_ANY) {
+		int net = inet_netof(*inp);
+		int lna = inet_lnaof(*inp);
 
-                cp = NULL;
-                if (!nflag && inet_lnaof(*inp) == INADDR_ANY) {
-			np = getnetbyaddr(inet_netof(*inp), AF_INET);
+		if (lna == INADDR_ANY) {
+			np = getnetbyaddr(net, AF_INET);
 			if (np)
 				cp = np->n_name;
 		}
 		if (cp == NULL) {
-                        struct sockaddr_in sin;
-
-                        memset(&sin, 0, sizeof(sin));
-                        sin.sin_family = AF_INET;
-                        sin.sin_addr = *inp;
-                        if (getnameinfo((struct sockaddr*)&sin, sizeof(sin),
-                                        host, sizeof(host), NULL, 0,
-                                        nflag ? NI_NUMERICHOST : 0) < 0)
-                                strlcpy(host, "?", sizeof(host));
-                        if ((cp = strchr(host, '.')) && !strcmp(cp + 1, domain))
-                                *cp = '\0';
+			hp = netsnmp_gethostbyaddr((char *)inp, sizeof (*inp),
+                                                   AF_INET);
+			if (hp) {
+				if ((cp = strchr(hp->h_name, '.')) &&
+				    !strcmp(cp + 1, domain))
+					*cp = '\0';
 #if defined (WIN32) || defined (cygwin)
-                        /*
-                         * Windows insists on returning the computer name for
-                         * 127.0.0.1 even if the hosts file lists something
-                         * else such as 'localhost'.  If we are trying to look
-                         * up 127.0.0.1, just return 'localhost'.
-                         */
-                        if (inp->s_addr == htonl(INADDR_LOOPBACK))
-                                strlcpy(host, "localhost", sizeof(host));
+                                        /* Windows insists on returning the computer name for 127.0.0.1
+                                         * even if the hosts file lists something else such as 'localhost'.
+                                         * If we are trying to look up 127.0.0.1, just return 'localhost'   */
+                                        if (!strcmp(inet_ntoa(*inp),"127.0.0.1"))
+                                             cp = host_temp;
+                                        else
 #endif                                                                          
-                        cp = host;
-                }
-		strlcpy(line, cp, sizeof(line));
-        }
-	return line;
+				cp = hp->h_name;
+			}
+		}
+	}
+	if (inp->s_addr == INADDR_ANY)
+		snprintf(line, sizeof line, "*");
+	else if (cp)
+		snprintf(line, sizeof line, "%s", cp);
+	else {
+		inp->s_addr = ntohl(inp->s_addr);
+#define C(x)	(unsigned)((x) & 0xff)
+		snprintf(line, sizeof line, "%u.%u.%u.%u",
+		    C(inp->s_addr >> 24), C(inp->s_addr >> 16),
+		    C(inp->s_addr >> 8), C(inp->s_addr));
+	}
+	return (line);
 }

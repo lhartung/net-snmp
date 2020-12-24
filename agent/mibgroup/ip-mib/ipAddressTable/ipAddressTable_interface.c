@@ -1065,7 +1065,10 @@ _ipAddressTable_check_indexes(ipAddressTable_rowreq_ctx * rowreq_ctx)
     /*
      * check defined range(s). 
      */
-    if (rc == SNMPERR_SUCCESS && rowreq_ctx->tbl_idx.ipAddressAddr_len > 255) {
+    if ((SNMPERR_SUCCESS == rc)
+        && ((rowreq_ctx->tbl_idx.ipAddressAddr_len < 0)
+            || (rowreq_ctx->tbl_idx.ipAddressAddr_len > 255))
+        ) {
         rc = SNMP_ERR_WRONGLENGTH;
     }
     if (MFD_SUCCESS != rc)

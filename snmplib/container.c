@@ -21,6 +21,8 @@
 #include <net-snmp/library/container_list_ssll.h>
 #include <net-snmp/library/container_null.h>
 
+#include <stdint.h>
+
 netsnmp_feature_child_of(container_all, libnetsnmp);
 
 netsnmp_feature_child_of(container_factories, container_all);
@@ -582,65 +584,71 @@ netsnmp_container_data_dup(netsnmp_container *dup, netsnmp_container *c)
  *
  */
 int
-netsnmp_compare_netsnmp_index(const void *lhs_arg, const void *rhs_arg)
+netsnmp_compare_netsnmp_index(const void *lhs, const void *rhs)
 {
-    const netsnmp_index *lhs = lhs_arg, *rhs = rhs_arg;
     int rc;
-
     netsnmp_assert((NULL != lhs) && (NULL != rhs));
     DEBUGIF("compare:index") {
         DEBUGMSGT(("compare:index", "compare "));
-        DEBUGMSGSUBOID(("compare:index", lhs->oids, lhs->len));
+        DEBUGMSGSUBOID(("compare:index", ((const netsnmp_index *) lhs)->oids,
+                     ((const netsnmp_index *) lhs)->len));
         DEBUGMSG(("compare:index", " to "));
-        DEBUGMSGSUBOID(("compare:index", rhs->oids, rhs->len));
+        DEBUGMSGSUBOID(("compare:index", ((const netsnmp_index *) rhs)->oids,
+                     ((const netsnmp_index *) rhs)->len));
         DEBUGMSG(("compare:index", "\n"));
     }
-    rc = snmp_oid_compare(lhs->oids, lhs->len, rhs->oids, rhs->len);
+    rc = snmp_oid_compare(((const netsnmp_index *) lhs)->oids,
+                          ((const netsnmp_index *) lhs)->len,
+                          ((const netsnmp_index *) rhs)->oids,
+                          ((const netsnmp_index *) rhs)->len);
     DEBUGMSGT(("compare:index", "result was %d\n", rc));
     return rc;
 }
 
 int
-netsnmp_ncompare_netsnmp_index(const void *lhs_arg, const void *rhs_arg)
+netsnmp_ncompare_netsnmp_index(const void *lhs, const void *rhs)
 {
-    const netsnmp_index *lhs = lhs_arg, *rhs = rhs_arg;
     int rc;
-
     netsnmp_assert((NULL != lhs) && (NULL != rhs));
     DEBUGIF("compare:index") {
         DEBUGMSGT(("compare:index", "compare "));
-        DEBUGMSGSUBOID(("compare:index", lhs->oids, lhs->len));
+        DEBUGMSGSUBOID(("compare:index", ((const netsnmp_index *) lhs)->oids,
+                     ((const netsnmp_index *) lhs)->len));
         DEBUGMSG(("compare:index", " to "));
-        DEBUGMSGSUBOID(("compare:index", rhs->oids, rhs->len));
+        DEBUGMSGSUBOID(("compare:index", ((const netsnmp_index *) rhs)->oids,
+                     ((const netsnmp_index *) rhs)->len));
         DEBUGMSG(("compare:index", "\n"));
     }
-    rc = snmp_oid_ncompare(lhs->oids, lhs->len, rhs->oids, rhs->len, rhs->len);
+    rc = snmp_oid_ncompare(((const netsnmp_index *) lhs)->oids,
+                           ((const netsnmp_index *) lhs)->len,
+                           ((const netsnmp_index *) rhs)->oids,
+                           ((const netsnmp_index *) rhs)->len,
+                           ((const netsnmp_index *) rhs)->len);
     DEBUGMSGT(("compare:index", "result was %d\n", rc));
     return rc;
 }
 
 int
-netsnmp_compare_cstring(const void *lhs_arg, const void *rhs_arg)
+netsnmp_compare_cstring(const void * lhs, const void * rhs)
 {
-    const container_type *lhs = lhs_arg, *rhs = rhs_arg;
-
-    return strcmp(lhs->name, rhs->name);
+    return strcmp(((const container_type*)lhs)->name,
+                  ((const container_type*)rhs)->name);
 }
 
 #ifndef NETSNMP_FEATURE_REMOVE_CONTAINER_NCOMPARE_CSTRING
 int
-netsnmp_ncompare_cstring(const void *lhs_arg, const void *rhs_arg)
+netsnmp_ncompare_cstring(const void * lhs, const void * rhs)
 {
-    const container_type *lhs = lhs_arg, *rhs = rhs_arg;
-
-    return strncmp(lhs->name, rhs->name, strlen(rhs->name));
+    return strncmp(((const container_type*)lhs)->name,
+                   ((const container_type*)rhs)->name,
+                   strlen(((const container_type*)rhs)->name));
 }
 #endif /* NETSNMP_FEATURE_REMOVE_CONTAINER_NCOMPARE_CSTRING */
 
 int
 netsnmp_compare_direct_cstring(const void * lhs, const void * rhs)
 {
-    return strcmp(lhs, rhs);
+    return strcmp((const char*)lhs, (const char*)rhs);
 }
 
 /*
@@ -658,7 +666,14 @@ netsnmp_compare_mem(const char * lhs, size_t lhs_len,
     int rc, min = SNMP_MIN(lhs_len, rhs_len);
 
     rc = memcmp(lhs, rhs, min);
-    return rc ? rc : lhs_len - rhs_len;
+    if((rc==0) && (lhs_len != rhs_len)) {
+        if(lhs_len < rhs_len)
+            rc = -1;
+        else
+            rc = 1;
+    }
+
+    return rc;
 }
 #endif /* NETSNMP_FEATURE_REMOVE_CONTAINER_COMPARE_MEM */
 

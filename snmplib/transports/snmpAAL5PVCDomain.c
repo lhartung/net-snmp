@@ -23,10 +23,6 @@
 #endif
 #include <atm.h>
 
-#if HAVE_DMALLOC_H
-#include <dmalloc.h>
-#endif
-
 #include <net-snmp/types.h>
 #include <net-snmp/output_api.h>
 #include <net-snmp/config_api.h>
@@ -232,7 +228,7 @@ netsnmp_aal5pvc_transport(const struct sockaddr_atmpvc *addr, int local)
          * Set up the QOS parameters.
          */
 
-        struct atm_qos qos = { };
+        struct atm_qos qos = { 0 };
         qos.aal = ATM_AAL5;
         qos.rxtp.traffic_class = ATM_UBR;
         qos.rxtp.max_sdu = SNMP_MAX_LEN;    /*  Hmm -- this is a bit small?  */

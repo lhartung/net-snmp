@@ -35,9 +35,6 @@
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#if HAVE_DMALLOC_H
-#include <dmalloc.h>
-#endif
 
 #ifdef HAVE_PRIORITYNAMES
 #include <sys/syslog.h>
@@ -84,15 +81,15 @@ debug_indent_get(void)
 const char*
 debug_indent(void)
 {
-#define SPACES "                                        " \
-               "                                        "
+    static const char SPACES[] = "                                        "
+        "                                        ";
+
     if ((sizeof(SPACES) - 1) < (unsigned int)debugindent) {
         snmp_log(LOG_ERR, "Too deep indentation for debug_indent. "
                  "Consider using \"%%*s\", debug_indent_get(), \"\" instead.");
         return SPACES;
     }
-    return SPACES + sizeof(SPACES) - 1 - debugindent;
-#undef SPACES
+    return &SPACES[sizeof(SPACES) - 1 - debugindent];
 }
 
 void
@@ -552,18 +549,6 @@ snmp_get_do_debugging(void)
 }
 
 void
-snmp_set_do_debugoutputall(int val)
-{
-    debug_print_everything = val;
-}
-
-int
-snmp_get_do_debugoutputall(void)
-{
-    return debug_print_everything;
-}
-
-void
 snmp_debug_shutdown(void)
 {
     int i;
@@ -687,16 +672,6 @@ int
 snmp_get_do_debugging(void)
 {
     return 0;
-}
-
-void
-snmp_set_do_debugoutputall(int val)
-{ }
-
-int
-snmp_get_do_debugoutputall(void)
-{
-    return 0
 }
 
 void

@@ -15,7 +15,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-AC_INIT([Net-SNMP], [5.8], [net-snmp-coders@lists.sourceforge.net])
+AC_INIT([Net-SNMP], [5.9], [net-snmp-coders@lists.sourceforge.net])
 AC_PREREQ([2.63])
 AC_CONFIG_SRCDIR([agent/snmpd.c])
 AC_REVISION([$Revision$])
@@ -33,30 +33,10 @@ AC_DEFINE_UNQUOTED(NETSNMP_CONFIGURE_OPTIONS,"${NETSNMP_CONFIGURE_OPTIONS-$ac_co
 CONFIGURE_OPTIONS="\"$ac_configure_args\""
 AC_SUBST(CONFIGURE_OPTIONS)
 
-##
-#   Compilation-related program checks:
-##
-
-AC_LANG([C])
-AC_PROG_CC
-AC_PROG_CPP
-LINKCC=${LINKCC-"$CC"}
-AC_SUBST(LINKCC)
-
-AC_C_CONST
-AC_C_INLINE
-
-#       libtool stuff for shared/static libraries.
 #
-LT_PREREQ([2.2.6])
-LT_INIT([win32-dll])
-AC_SUBST(LIBTOOL_DEPS)
-
+# Check whether _GNU_SOURCE etc. should be defined
 #
-# Define _GNU_SOURCE for asprintf(); _ALL_SOURCE and _THREAD_SAFE for struct
-# random_data on AIX; __EXTENSIONS__ for Solaris.
-#
-CPPFLAGS="-D_GNU_SOURCE -D_ALL_SOURCE -D_THREAD_SAFE -D__EXTENSIONS__ $CPPFLAGS"
+AC_USE_SYSTEM_EXTENSIONS
 
 ##
 ## Recommended structure:
@@ -117,6 +97,8 @@ AC_SUBST(AGENTLIBS)
 AC_SUBST(OTHERAGENTLIBOBJS)
 AC_SUBST(OTHERAGENTLIBLOBJS)
 AC_SUBST(OTHERAGENTLIBLFTS)
+
+AC_SUBST(DLLIBS)
 
 AC_SUBST(PARTIALTARGETFLAGS)
 AC_SUBST(ac_cv_NETSNMP_SYSTEM_INCLUDE_FILE)

@@ -9,6 +9,12 @@
 #   Standard checks:
 ##
 
+AC_CHECK_SIZEOF(short)
+AC_CHECK_SIZEOF(int)
+AC_CHECK_SIZEOF(long)
+AC_CHECK_SIZEOF(long long)
+AC_CHECK_SIZEOF(intmax_t)
+
 AC_TYPE_INT8_T
 AC_TYPE_INT16_T
 AC_TYPE_INT32_T
@@ -38,6 +44,15 @@ AC_CHECK_TYPES([mib2_ipIfStatsEntry_t],,,[#include <inet/mib2.h>])
 #   N.B:  The above checks could safely be moved to
 #         the later 'config_types' sub-script
 #
+
+#  Darwin: check whether or not struct in_ifaddr is available.
+#
+#
+AC_CHECK_MEMBERS([struct in_ifaddr.ia_subnetmask],,,[
+#ifdef HAVE_NETINET_IN_VAR_H
+#include <netinet/in_var.h>
+#endif
+])
 
 
 ##

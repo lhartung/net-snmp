@@ -92,6 +92,28 @@ will be an integer multiple of the number of variables requested times
 the calculated number of repeats allow to fit below this number.
 .IP
 Also note that processing of maxGetbulkRepeats is handled first.
+.IP "ifmib_max_num_ifaces NUM"
+Sets the maximum number of interfaces included in IF-MIB data collection.
+For servers with a large number of interfaces (ppp, dummy, bridge, etc)
+the IF-MIB processing will take a large chunk of CPU for ioctl calls
+(on Linux). Setting a reasonable maximum for the CPU used will
+reduce the CPU load for IF-MIB processing.  For example, configuring
+"ifmib_max_num_ifaces 500" will include only the first 500 interfaces
+based on ifindex and ignore all others for IF-MIB processing.
+.IP
+The default (without this configured) is to include all interfaces.
+.IP "include_ifmib_iface_prefix PREFIX1 PREFIX2 ..."
+Sets the interface name prefixes to include in the IF-MIB data collection.
+For servers with a large number of interfaces (ppp, dummy, bridge, etc)
+the IF-MIB processing will take a large chunk of CPU for ioctl calls
+(on Linux). A set of space separated interface name prefixes will
+reduce the CPU load for IF-MIB processing.  For example, configuring
+"include_ifmib_iface_prefix eth dummy lo" will include only interfaces
+with these prefixes and ignore all others for IF-MIB processing. If
+regex support is compiled in, each of the prefixes is a regular
+expression (which is not permitted to contain a space or tab character).
+.IP
+The default (without this configured) is to include all interfaces.
 .SS SNMPv3 Configuration - Real Security
 SNMPv3 is added flexible security models to the SNMP packet structure
 so that multiple security solutions could be used.  SNMPv3 was
@@ -731,13 +753,13 @@ e.g. "loop0"
 Excludes all LInux ramdisk block devices, whose names start with "ram", e.g.
 "ram0"
 .PP
-On Linux systems, it is also possible to report only explicitly whitelisted
+On Linux systems, it is also possible to report only explicitly accepted
 devices. It may take significant amount of time to process diskIOTable data
-on systems with tens of thousands of block devices and whitelisting only the
+on systems with tens of thousands of block devices and accept only the
 important ones avoids large CPU consumption.
 .IP "diskio <device>"
-Enables whitelisting of devices and adds the device to the whitelist. Only
-explicitly whitelisted devices will be reported. This option may be used
+Enables acceptlist of devices and adds the device to the acceptlist. Only
+explicitly acceptlisted devices will be reported. This option may be used
 multiple times.
 .SS System Load Monitoring
 This requires that the agent was built with support for either the

@@ -299,8 +299,10 @@ network_status(int idx)
         return 2;               /* running */
     else
         return 5;               /* down */
+#else
+    /* To do: implement network_status() for Windows. */
+    return 2;                   /* running */
 #endif /* WIN32 */
-
 }
 
 int

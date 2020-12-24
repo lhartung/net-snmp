@@ -19,6 +19,10 @@ netsnmp_feature_child_of(interface_arch_set_admin_status, interface_all);
 netsnmp_feature_require(interface_ioctl_flags_set);
 #endif /* NETSNMP_FEATURE_REQUIRE_INTERFACE_ARCH_SET_ADMIN_STATUS */
 
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#endif
+
 #ifdef HAVE_PCI_LOOKUP_NAME
 #include <pci/pci.h>
 #include <setjmp.h>
@@ -133,6 +137,41 @@ netsnmp_prefix_listen_info list_info;
 int netsnmp_prefix_listen(void);
 #endif
 
+#ifdef HAVE_PCI_LOOKUP_NAME
+static void init_libpci(void)
+{
+    struct stat stbuf;
+
+    /*
+     * When snmpd is run inside an OpenVZ container /proc/bus/pci is not
+     * available.
+     */
+    if (stat("/proc/vz", &stbuf) == 0)
+        return;
+
+    pci_access = pci_alloc();
+    if (!pci_access) {
+	snmp_log(LOG_ERR, "pcilib: pci_alloc failed\n");
+	return;
+    }
+
+    pci_access->error = netsnmp_pci_error;
+
+    do_longjmp = 1;
+    if (setjmp(err_buf)) {
+        pci_cleanup(pci_access);
+	snmp_log(LOG_ERR, "pcilib: pci_init failed\n");
+        pci_access = NULL;
+    }
+    else if (pci_access)
+	pci_init(pci_access);
+    do_longjmp = 0;
+}
+#else
+static void init_libpci(void)
+{
+}
+#endif
 
 void
 netsnmp_arch_interface_init(void)
@@ -172,25 +211,7 @@ netsnmp_arch_interface_init(void)
     netsnmp_prefix_listen();
 #endif
 
-#ifdef HAVE_PCI_LOOKUP_NAME
-    pci_access = pci_alloc();
-    if (!pci_access) {
-	snmp_log(LOG_ERR, "pcilib: pci_alloc failed\n");
-	return;
-    }
-
-    pci_access->error = netsnmp_pci_error;
-
-    do_longjmp = 1;
-    if (setjmp(err_buf)) {
-        pci_cleanup(pci_access);
-	snmp_log(LOG_ERR, "pcilib: pci_init failed\n");
-        pci_access = NULL;
-    }
-    else if (pci_access)
-	pci_init(pci_access);
-    do_longjmp = 0;
-#endif
+    init_libpci();
 }
 
 /*
@@ -464,7 +485,6 @@ _parse_stats(netsnmp_interface_entry *entry, char *stats, int expected)
      *  [               OUT                               ]
      *   byte pkts errs drop fifo colls carrier compressed
      */
-#ifdef SCNuMAX
     uintmax_t       rec_pkt, rec_oct, rec_err, rec_drop, rec_mcast;
     uintmax_t       snd_pkt, snd_oct, snd_err, snd_drop, coll;
     const char     *scan_line_2_2 =
@@ -476,14 +496,6 @@ _parse_stats(netsnmp_interface_entry *entry, char *stats, int expected)
         "%"   SCNuMAX " %"  SCNuMAX " %*" SCNuMAX " %*" SCNuMAX
         " %*" SCNuMAX " %"  SCNuMAX " %"  SCNuMAX " %*" SCNuMAX
         " %*" SCNuMAX " %"  SCNuMAX;
-#else
-    unsigned long   rec_pkt, rec_oct, rec_err, rec_drop, rec_mcast;
-    unsigned long   snd_pkt, snd_oct, snd_err, snd_drop, coll;
-    const char     *scan_line_2_2 =
-        "%lu %lu %lu %lu %*lu %*lu %*lu %lu %lu %lu %lu %lu %*lu %lu";
-    const char     *scan_line_2_0 =
-        "%lu %lu %*lu %*lu %*lu %lu %lu %*lu %*lu %lu";
-#endif
     static const char     *scan_line_to_use = NULL;
     int             scan_count;
 
@@ -523,10 +535,8 @@ _parse_stats(netsnmp_interface_entry *entry, char *stats, int expected)
              */
             entry->ns_flags |= NETSNMP_INTERFACE_FLAGS_HAS_MCAST_PKTS;
             entry->ns_flags |= NETSNMP_INTERFACE_FLAGS_HAS_HIGH_SPEED;
-#ifdef SCNuMAX   /* XXX - should be flag for 64-bit variables */
             entry->ns_flags |= NETSNMP_INTERFACE_FLAGS_HAS_HIGH_BYTES;
             entry->ns_flags |= NETSNMP_INTERFACE_FLAGS_HAS_HIGH_PACKETS;
-#endif
         }
     } else {
         scan_count = sscanf(stats, scan_line_to_use,
@@ -562,13 +572,11 @@ _parse_stats(netsnmp_interface_entry *entry, char *stats, int expected)
     entry->stats.imcast.low = rec_mcast & 0xffffffff;
     entry->stats.obytes.low = snd_oct & 0xffffffff;
     entry->stats.oucast.low = snd_pkt & 0xffffffff;
-#ifdef SCNuMAX   /* XXX - should be flag for 64-bit variables */
     entry->stats.ibytes.high = rec_oct >> 32;
     entry->stats.iall.high = rec_pkt >> 32;
     entry->stats.imcast.high = rec_mcast >> 32;
     entry->stats.obytes.high = snd_oct >> 32;
     entry->stats.oucast.high = snd_pkt >> 32;
-#endif
     entry->stats.ierrors   = rec_err;
     entry->stats.idiscards = rec_drop;
     entry->stats.oerrors   = snd_err;
@@ -651,8 +659,8 @@ netsnmp_arch_interface_container_load(netsnmp_container* container,
      * to detect the position of individual fields directly,
      * but I suspect this is probably more trouble than it's worth.
      */
-    fgets(line, sizeof(line), devin);
-    fgets(line, sizeof(line), devin);
+    NETSNMP_IGNORE_RESULT(fgets(line, sizeof(line), devin));
+    NETSNMP_IGNORE_RESULT(fgets(line, sizeof(line), devin));
 
     if( 0 == scan_expected ) {
         if (strstr(line, "compressed")) {
@@ -713,6 +721,12 @@ netsnmp_arch_interface_container_load(netsnmp_container* container,
          */
         *stats++ = 0; /* null terminate name */
 
+	if (!netsnmp_access_interface_include(ifstart))
+		continue;
+
+	if (netsnmp_access_interface_max_reached(ifstart))
+		/* we may need to stop tracking ifaces if a max was set */
+		continue;
         /*
          * set address type flags.
          * the only way I know of to check an interface for

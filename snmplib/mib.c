@@ -50,7 +50,20 @@ SOFTWARE.
 #include <sys/types.h>
 
 #if HAVE_DIRENT_H
-#include <dirent.h>
+# include <dirent.h>
+# define NAMLEN(dirent) strlen((dirent)->d_name)
+#else
+# define dirent direct
+# define NAMLEN(dirent) (dirent)->d_namlen
+# if HAVE_SYS_NDIR_H
+#  include <sys/ndir.h>
+# endif
+# if HAVE_SYS_DIR_H
+#  include <sys/dir.h>
+# endif
+# if HAVE_NDIR_H
+#  include <ndir.h>
+# endif
 #endif
 
 #ifdef HAVE_INTTYPES_H
@@ -83,9 +96,6 @@ SOFTWARE.
 
 #if HAVE_UNISTD_H
 #include <unistd.h>
-#endif
-#if HAVE_DMALLOC_H
-#include <dmalloc.h>
 #endif
 
 #include <net-snmp/types.h>
@@ -3709,9 +3719,21 @@ build_oid_segment(netsnmp_variable_list * var)
 }
 
 
+/**
+ * Concatenate a prefix and the OIDs of a variable list.
+ *
+ * @param[out]    in         Output buffer.
+ * @param[in]     in_len     Maximum number of OID components that fit in @in.
+ * @param[out]    out_len    Number of OID components of the result.
+ * @param[in]     prefix     OID to be copied to the start of the output buffer.
+ * @param[in]     prefix_len Number of OID components to copy from @prefix.
+ * @param[in/out] indexes    Variable list for which var->name should be set
+ *                           for each variable var in the list and whose OIDs
+ *                           should be appended to @in.
+ */
 int
 build_oid_noalloc(oid * in, size_t in_len, size_t * out_len,
-                  oid * prefix, size_t prefix_len,
+                  const oid * prefix, size_t prefix_len,
                   netsnmp_variable_list * indexes)
 {
     netsnmp_variable_list *var;
@@ -3758,7 +3780,7 @@ build_oid(oid ** out, size_t * out_len,
      *
      * then see if it fits in existing buffer, or realloc buffer.
      */
-    if (build_oid_noalloc(tmpout, sizeof(tmpout), out_len,
+    if (build_oid_noalloc(tmpout, sizeof(tmpout) / sizeof(tmpout[0]), out_len,
                           prefix, prefix_len, indexes) != SNMPERR_SUCCESS)
         return SNMPERR_GENERR;
 
@@ -4002,7 +4024,7 @@ dump_realloc_oid_to_inetaddress(const int addr_type, const oid * objid, size_t o
         return 1;
 
     for (i = 0; i < objidlen; i++)
-        if (objid[i] > 255)
+        if (objid[i] < 0 || objid[i] > 255)
             return 2;
 
     p = intbuf;

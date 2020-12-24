@@ -384,9 +384,15 @@ typedef struct request_list {
     NETSNMP_IMPORT
     void            init_snmp(const char *);
 
+    NETSNMP_IMPORT
     int
     snmp_build(u_char ** pkt, size_t * pkt_len, size_t * offset,
                netsnmp_session * pss, netsnmp_pdu *pdu);
+
+    NETSNMP_IMPORT
+    int
+    snmp_parse(struct session_list *sessp, netsnmp_session *pss,
+               netsnmp_pdu *pdu, u_char *data, size_t length);
 
     NETSNMP_IMPORT
     u_char         *snmp_pdu_build(netsnmp_pdu *, u_char *, size_t *);
@@ -526,9 +532,9 @@ struct netsnmp_transport_s;
      */
 
     NETSNMP_IMPORT
-    struct netsnmp_transport_s *snmp_sess_transport(struct session_list *);
+    struct netsnmp_transport_s *snmp_sess_transport(void *);
     NETSNMP_IMPORT
-    void            snmp_sess_transport_set(struct session_list *,
+    void            snmp_sess_transport_set(void *,
 					    struct netsnmp_transport_s *);
 
     NETSNMP_IMPORT int
@@ -553,30 +559,41 @@ struct netsnmp_transport_s;
      */
 
     NETSNMP_IMPORT
-    struct session_list *
-    snmp_sess_add_ex(netsnmp_session *,
-                     struct netsnmp_transport_s *,
-                     int (*fpre_parse)(netsnmp_session *,
-                                        struct netsnmp_transport_s *, void *,
-                                        int),
-                     int (*fparse)(netsnmp_session *, struct snmp_pdu *,
-                                   u_char *, size_t),
-                     int (*fpost_parse)(netsnmp_session *, struct snmp_pdu *,
-                                        int),
-                     int (*fbuild)(netsnmp_session *, struct snmp_pdu *,
-                                   u_char *, size_t *),
-                     int (*frbuild)(netsnmp_session *, struct snmp_pdu *,
-                                    u_char **, size_t *, size_t *),
-                     int (*fcheck)(u_char *, size_t),
-                     netsnmp_pdu *(*fcreate_pdu)(struct netsnmp_transport_s *,
-                                                 void *, size_t));
+    void           *snmp_sess_add_ex(netsnmp_session *,
+                                     struct netsnmp_transport_s *,
+                                     int (*fpre_parse) (netsnmp_session *,
+                                                        struct
+                                                        netsnmp_transport_s
+                                                        *, void *, int),
+                                     int (*fparse) (netsnmp_session *,
+                                                    struct snmp_pdu *,
+                                                    u_char *, size_t),
+                                     int (*fpost_parse) (netsnmp_session *,
+                                                         struct snmp_pdu *,
+                                                         int),
+                                     int (*fbuild) (netsnmp_session *,
+                                                    struct snmp_pdu *,
+                                                    u_char *, size_t *),
+                                     int (*frbuild) (netsnmp_session *,
+                                                     struct snmp_pdu *,
+                                                     u_char **, size_t *,
+                                                     size_t *),
+                                     int (*fcheck) (u_char *, size_t),
+                                     netsnmp_pdu *(*fcreate_pdu) (struct
+                                                                  netsnmp_transport_s
+                                                                  *,
+                                                                  void *,
+                                                                  size_t));
 
     NETSNMP_IMPORT
-    struct session_list *
-    snmp_sess_add(netsnmp_session *, struct netsnmp_transport_s *,
-                  int (*fpre_parse) (netsnmp_session *,
-                                     struct netsnmp_transport_s *, void *, int),
-                  int (*fpost_parse) (netsnmp_session *, netsnmp_pdu *, int));
+    void           *snmp_sess_add(netsnmp_session *,
+                                  struct netsnmp_transport_s *,
+                                  int (*fpre_parse) (netsnmp_session *,
+                                                     struct
+                                                     netsnmp_transport_s *,
+                                                     void *, int),
+                                  int (*fpost_parse) (netsnmp_session *,
+                                                      netsnmp_pdu *, int));
 
     NETSNMP_IMPORT
     netsnmp_session *snmp_add(netsnmp_session *,

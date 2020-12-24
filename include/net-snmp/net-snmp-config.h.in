@@ -54,6 +54,14 @@
 
 #define config_parse_dot_conf(w,x,y,z)
 
+/* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
+   systems. This function is required for `alloca.c' support on those systems.
+   */
+#undef CRAY_STACKSEG_END
+
+/* Define to 1 if using `alloca.c'. */
+#undef C_ALLOCA
+
 /* location of swap device */
 #undef DMEM_LOC
 
@@ -71,6 +79,13 @@
 
 /* Define to 1 if you have the `AES_cfb128_encrypt' function. */
 #undef HAVE_AES_CFB128_ENCRYPT
+
+/* Define to 1 if you have `alloca', as a function or macro. */
+#undef HAVE_ALLOCA
+
+/* Define to 1 if you have <alloca.h> and it should be used (not on Ultrix).
+   */
+#undef HAVE_ALLOCA_H
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
@@ -108,6 +123,9 @@
 /* Define to 1 if the system has the type `Counter64'. */
 #undef HAVE_COUNTER64
 
+/* Define to 1 if you have the <crt_externs.h> header file. */
+#undef HAVE_CRT_EXTERNS_H
+
 /* Define to 1 if you have the <curses.h> header file. */
 #undef HAVE_CURSES_H
 
@@ -138,7 +156,8 @@
 /* Define to 1 if you have the `DH_set0_pqg' function. */
 #undef HAVE_DH_SET0_PQG
 
-/* Define to 1 if you have the <dirent.h> header file. */
+/* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
+   */
 #undef HAVE_DIRENT_H
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
@@ -146,9 +165,6 @@
 
 /* Define to 1 if you have the `dlopen' function. */
 #undef HAVE_DLOPEN
-
-/* Define to 1 if you have the <dmalloc.h> header file. */
-#undef HAVE_DMALLOC_H
 
 /* Set if the dpkg-query command is available */
 #undef HAVE_DPKG_QUERY
@@ -158,6 +174,9 @@
 
 /* Define to 1 if you have the `DTLS_method' function. */
 #undef HAVE_DTLS_METHOD
+
+/* Define to 1 if you have the `ERR_get_error_all' function. */
+#undef HAVE_ERR_GET_ERROR_ALL
 
 /* Define to 1 if you have the <err.h> header file. */
 #undef HAVE_ERR_H
@@ -191,9 +210,6 @@
 
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
-
-/* Define if FD_CLOEXEC is defined in <fcntl.h> */
-#undef HAVE_FD_CLOEXEC
 
 /* Define to 1 if you have the `fgetc_unlocked' function. */
 #undef HAVE_FGETC_UNLOCKED
@@ -348,9 +364,6 @@
 /* Define to 1 if you have the `kinfo_get_cpus' function. */
 #undef HAVE_KINFO_GET_CPUS
 
-/* Define if you have /dev/kmem */
-#undef HAVE_KMEM
-
 /* Define to 1 if you have the `knlist' function. */
 #undef HAVE_KNLIST
 
@@ -359,6 +372,9 @@
 
 /* Define to 1 if you have the `krb5_auth_con_getsendsubkey' function. */
 #undef HAVE_KRB5_AUTH_CON_GETSENDSUBKEY
+
+/* Define to 1 if `enctype' is a member of `krb5_keyblock'. */
+#undef HAVE_KRB5_KEYBLOCK_ENCTYPE
 
 /* Define to 1 if you have the <kstat.h> header file. */
 #undef HAVE_KSTAT_H
@@ -457,6 +473,9 @@
 /* Define to 1 if you have the <linux/tasks.h> header file. */
 #undef HAVE_LINUX_TASKS_H
 
+/* Define to 1 if you have the <lm.h> header file. */
+#undef HAVE_LM_H
+
 /* Define to 1 if you have the `load_defaults' function. */
 #undef HAVE_LOAD_DEFAULTS
 
@@ -487,6 +506,9 @@
 /* Define to 1 if you have the <machine/types.h> header file. */
 #undef HAVE_MACHINE_TYPES_H
 
+/* Define to 1 if you have the <mach-o/dyld.h> header file. */
+#undef HAVE_MACH_O_DYLD_H
+
 /* Define to 1 if you have the <malloc.h> header file. */
 #undef HAVE_MALLOC_H
 
@@ -495,6 +517,9 @@
 
 /* Define to 1 if the system has the type `mib2_ipIfStatsEntry_t'. */
 #undef HAVE_MIB2_IPIFSTATSENTRY_T
+
+/* Define if MIB_IF_TABLE2 is available */
+#undef HAVE_MIB_IF_TABLE2
 
 /* Define to 1 if you have the `mkstemp' function. */
 #undef HAVE_MKSTEMP
@@ -531,6 +556,9 @@
 
 /* Define to 1 if you have the <ncurses/curses.h> header file. */
 #undef HAVE_NCURSES_CURSES_H
+
+/* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
+#undef HAVE_NDIR_H
 
 /* Define to 1 if you have the <netdb.h> header file. */
 #undef HAVE_NETDB_H
@@ -973,6 +1001,9 @@
 /* Define to 1 if `if_xname' is a member of `struct ifnet'. */
 #undef HAVE_STRUCT_IFNET_IF_XNAME
 
+/* Define to 1 if `ia_subnetmask' is a member of `struct in_ifaddr'. */
+#undef HAVE_STRUCT_IN_IFADDR_IA_SUBNETMASK
+
 /* Define to 1 if `ipi_spec_dst' is a member of `struct in_pktinfo'. */
 #undef HAVE_STRUCT_IN_PKTINFO_IPI_SPEC_DST
 
@@ -1142,6 +1173,10 @@
 /* Define to 1 if you have the <sys/conf.h> header file. */
 #undef HAVE_SYS_CONF_H
 
+/* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
+   */
+#undef HAVE_SYS_DIR_H
+
 /* Define to 1 if you have the <sys/diskio.h> header file. */
 #undef HAVE_SYS_DISKIO_H
 
@@ -1189,6 +1224,10 @@
 
 /* Define to 1 if you have the <sys/mount.h> header file. */
 #undef HAVE_SYS_MOUNT_H
+
+/* Define to 1 if you have the <sys/ndir.h> header file, and it defines `DIR'.
+   */
+#undef HAVE_SYS_NDIR_H
 
 /* Define to 1 if you have the <sys/param.h> header file. */
 #undef HAVE_SYS_PARAM_H
@@ -1433,6 +1472,12 @@
 /* Define if _get_osfhandle() is defined in <io.h> */
 #undef HAVE__GET_OSFHANDLE
 
+/* Define to 1 if you have the `_NSGetArgv' function. */
+#undef HAVE__NSGETARGV
+
+/* Define to 1 if you have the `_NSGetExecutablePath' function. */
+#undef HAVE__NSGETEXECUTABLEPATH
+
 /* Define if _open_osfhandle() is defined in <io.h> */
 #undef HAVE__OPEN_OSFHANDLE
 
@@ -1442,8 +1487,7 @@
 /* Path to the lpstat command */
 #undef LPSTAT_PATH
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #undef LT_OBJDIR
 
 /* define if agentx transport is to use domain sockets only */
@@ -1539,7 +1583,7 @@
 /* ifnet needs to have _KERNEL_STRUCTURES defined */
 #undef NETSNMP_IFNET_NEEDS_KERNEL_STRUCTURES
 
-/* Type of the fifth argument of select() */
+/* Type of the third argument of ioctlsocket() */
 #undef NETSNMP_IOCTLSOCKET_ARG
 
 /* Define if you want to remove all non-essential code features. */
@@ -1572,9 +1616,6 @@
 
 /* umask permissions to set up persistent files with */
 #undef NETSNMP_PERSISTENT_MASK
-
-/* Size prefix to use to printf a uint32_t */
-#undef NETSNMP_PRI32
 
 /* Size prefix to use to printf a size_t or ssize_t */
 #undef NETSNMP_PRIz
@@ -1662,8 +1703,31 @@
    function */
 #undef SECOND_APPVERIFY_COOKIE_CB_ARG_QUALIFIER
 
+/* The size of `int', as computed by sizeof. */
+#undef SIZEOF_INT
+
+/* The size of `intmax_t', as computed by sizeof. */
+#undef SIZEOF_INTMAX_T
+
+/* The size of `long', as computed by sizeof. */
+#undef SIZEOF_LONG
+
+/* The size of `long long', as computed by sizeof. */
+#undef SIZEOF_LONG_LONG
+
+/* The size of `short', as computed by sizeof. */
+#undef SIZEOF_SHORT
+
 /* The size of `sockaddr_un.sun_path', as computed by sizeof. */
 #undef SIZEOF_SOCKADDR_UN_SUN_PATH
+
+/* If using the C implementation of alloca, define if you know the
+   direction of stack growth for your system; otherwise it will be
+   automatically deduced at runtime.
+	STACK_DIRECTION > 0 => grows toward higher addresses
+	STACK_DIRECTION < 0 => grows toward lower addresses
+	STACK_DIRECTION = 0 => direction of growth unknown */
+#undef STACK_DIRECTION
 
 /* Define if statfs takes 2 args and the second argument has type struct
    fs_data. [Ultrix] */
@@ -1685,6 +1749,38 @@
 /* Where is the uname command */
 #undef UNAMEPROG
 
+/* Enable extensions on AIX 3, Interix.  */
+#ifndef _ALL_SOURCE
+# undef _ALL_SOURCE
+#endif
+/* Enable GNU extensions on systems that have them.  */
+#ifndef _GNU_SOURCE
+# undef _GNU_SOURCE
+#endif
+/* Enable threading extensions on Solaris.  */
+#ifndef _POSIX_PTHREAD_SEMANTICS
+# undef _POSIX_PTHREAD_SEMANTICS
+#endif
+/* Enable extensions on HP NonStop.  */
+#ifndef _TANDEM_SOURCE
+# undef _TANDEM_SOURCE
+#endif
+/* Enable general extensions on Solaris.  */
+#ifndef __EXTENSIONS__
+# undef __EXTENSIONS__
+#endif
+
+
+/* Define to 1 if on MINIX. */
+#undef _MINIX
+
+/* Define to 2 if the system does not provide POSIX.1 features except with
+   this defined. */
+#undef _POSIX_1_SOURCE
+
+/* Define to 1 if you need to in order for `stat' and other things to work. */
+#undef _POSIX_SOURCE
+
 /* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
    <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
    #define below would cause a syntax error. */
@@ -1702,6 +1798,10 @@
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const
+
+/* in_addr_t definition if not defined in <netinet/in.h>. Must match the type
+   of sockaddr_in::sin_addr */
+#undef in_addr_t
 
 /* Define to `__inline__' or `__inline' if that's what the C compiler
    calls it, or to nothing if 'inline' is not supported under any name.  */
@@ -1738,6 +1838,9 @@
 
 /* Define to `int' if <sys/types.h> does not define. */
 #undef pid_t
+
+/* Define to `unsigned int' if <sys/types.h> does not define. */
+#undef size_t
 
 /* Define to the type of an unsigned integer type of width exactly 16 bits if
    such a type exists and the standard includes do not define it. */

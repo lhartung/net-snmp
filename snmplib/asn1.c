@@ -189,10 +189,6 @@ SOFTWARE.
 #include <in.h>
 #endif
 
-#if HAVE_DMALLOC_H
-#include <dmalloc.h>
-#endif
-
 #include <net-snmp/output_api.h>
 #include <net-snmp/utilities.h>
 
@@ -215,7 +211,11 @@ SOFTWARE.
 #endif
 
 
-#define CHECK_OVERFLOW_S(x,y) do {                                      \
+#if SIZEOF_LONG == 4
+#  define CHECK_OVERFLOW_S(x,y)
+#  define CHECK_OVERFLOW_U(x,y)
+#else
+#  define CHECK_OVERFLOW_S(x,y) do {                                    \
         if (x > INT32_MAX) {                                            \
             DEBUGMSG(("asn","truncating signed value %ld to 32 bits (%d)\n",(long)(x),y)); \
             x &= 0xffffffff;                                            \
@@ -225,12 +225,13 @@ SOFTWARE.
         }                                                               \
     } while(0)
 
-#define CHECK_OVERFLOW_U(x,y) do {                                      \
+#  define CHECK_OVERFLOW_U(x,y) do {                                    \
         if (x > UINT32_MAX) {                                           \
             x &= 0xffffffff;                                            \
             DEBUGMSG(("asn","truncating unsigned value to 32 bits (%d)\n",y)); \
         }                                                               \
     } while(0)
+#endif
 
 /**
  * @internal
@@ -1039,8 +1040,9 @@ asn_build_string(u_char * data,
         u_char         *buf = (u_char *) malloc(1 + strlength);
         size_t          l = (buf != NULL) ? (1 + strlength) : 0, ol = 0;
 
-        if (sprint_realloc_asciistring
-            (&buf, &l, &ol, 1, str, strlength)) {
+        if (sprint_realloc_asciistring(&buf, &l, &ol, 1,
+                                       str ? str : (const u_char *)"",
+                                       strlength)) {
             DEBUGMSG(("dumpv_send", "  String:\t%s\n", buf));
         } else {
             if (buf == NULL) {

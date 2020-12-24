@@ -35,13 +35,13 @@
 #endif
 #if HAVE_DIRENT_H
 # include <dirent.h>
+# define NAMLEN(dirent) strlen((dirent)->d_name)
+#else
+# define dirent direct
+# define NAMLEN(dirent) (dirent)->d_namlen
 #endif
 
 #include <errno.h>
-
-#if HAVE_DMALLOC_H
-#  include <dmalloc.h>
-#endif
 
 #include <net-snmp/types.h>
 #include <net-snmp/library/container.h>

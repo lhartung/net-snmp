@@ -18,19 +18,24 @@
 /*
  * inp_next symbol 
  */
+#define HAVE_INPCBTABLE 1
 #undef INP_NEXT_SYMBOL
+#undef INP_PREV_SYMBOL
 
 #if __NetBSD_Version__ >= 700000001
 #define INP_FIRST_SYMBOL inpt_queue.tqh_first
 #define INP_NEXT_SYMBOL inp_queue.tqe_next
+#define INP_PREV_SYMBOL inp_queue.tqe_prev
 #else
 #define INP_FIRST_SYMBOL inpt_queue.cqh_first
 #define INP_NEXT_SYMBOL inp_queue.cqe_next
+#define INP_PREV_SYMBOL inp_queue.cqe_prev
 #endif
 
 #if __NetBSD_Version__ >= 106300000       /* NetBSD 1.6ZD */            
 #undef IFADDR_SYMBOL
 #define IFADDR_SYMBOL "in_ifaddrhead"
+#undef TOTAL_MEMORY_SYMBOL
 #endif
 
 #define UTMP_FILE _PATH_UTMP
@@ -57,6 +62,9 @@
 #define netbsd3
 #endif
 
+#if defined(netbsd9) && !defined(netbsd8)
+#define netbsd8 netbsd8
+#endif
 #if defined(netbsd8) && !defined(netbsd7)
 #define netbsd7 netbsd7
 #endif
@@ -85,4 +93,3 @@
 
 /* define the extra mib modules that are supported */
 #define NETSNMP_INCLUDE_HOST_RESOURCES
-#define NETSNMP_INCLUDE_IFTABLE_REWRITES
